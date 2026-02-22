@@ -120,6 +120,10 @@ if __name__ == "__main__":
         import gov_interpretation_crawler
         manager.register_crawler("中国政府网政策解读", gov_interpretation_crawler.run)
         
+        # 导入国家发改委爬虫
+        import ndrc_crawler
+        manager.register_crawler("国家发改委", ndrc_crawler.run)
+        
         # 尝试导入测试爬虫（仅用于测试，非必需）
         try:
             import test_crawler
