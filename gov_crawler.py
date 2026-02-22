@@ -1,7 +1,7 @@
 import os
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime
+from datetime import datetime, timedelta
 from supabase import create_client, Client
 
 # ==========================================
@@ -30,7 +30,7 @@ def scrape_data():
     try:
         # 计算前一天日期
         today = datetime.now().date()
-        yesterday = today - datetime.timedelta(days=1)
+        yesterday = today - timedelta(days=1)
         print(f"📅 运行日期：{today}")
         print(f"🎯 目标抓取日期：{yesterday}")
         

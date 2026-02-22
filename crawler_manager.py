@@ -116,9 +116,12 @@ if __name__ == "__main__":
         import gov_crawler
         manager.register_crawler("中国政府网", gov_crawler.run)
         
-        # 导入测试爬虫（用于测试错误处理）
-        import test_crawler
-        manager.register_crawler("测试爬虫", test_crawler.run)
+        # 尝试导入测试爬虫（仅用于测试，非必需）
+        try:
+            import test_crawler
+            manager.register_crawler("测试爬虫", test_crawler.run)
+        except ImportError:
+            print("⚠️  测试爬虫模块未找到，跳过注册")
         
         # 后续添加其他爬虫时，按照以下格式注册
         # import other_crawler
