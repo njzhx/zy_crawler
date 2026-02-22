@@ -41,34 +41,49 @@ def scrape_data():
         # 解析HTML
         soup = BeautifulSoup(response.content, 'html.parser')
         
-        # 查找文章列表（根据实际网页结构调整选择器）
-        # 注意：这里需要根据实际网页结构进行调整
-        policy_items = soup.select('.list > li')
+        # 查找文章列表（直接查找所有li元素）
+        policy_items = soup.find_all('li')
         
         filtered_count = 0
         
         for item in policy_items:
             # 提取标题和链接
-            title_elem = item.select_one('a')
+            title_elem = item.find('a')
             if not title_elem:
                 continue
             
-            title = title_elem.get_text(strip=True)
-            policy_url = title_elem.get('href')
+            # 提取文本
+            text = item.get_text(strip=True)
             
-            # 确保URL是完整的
-            if policy_url and not policy_url.startswith('http'):
-                policy_url = f"http://finance.people.com.cn{policy_url}"
+            # 提取日期（从文本末尾提取）
+            import re
+            date_pattern = re.compile(r'(\d{4}-\d{2}-\d{2})$')
+            date_match = date_pattern.search(text)
             
-            # 提取发布日期
-            date_elem = item.select_one('.date')
             pub_at = None
-            if date_elem:
-                date_str = date_elem.get_text(strip=True)
+            if date_match:
+                date_str = date_match.group(1)
                 try:
                     pub_at = datetime.strptime(date_str, '%Y-%m-%d').date()
                 except ValueError:
                     pass
+            
+            # 提取标题（去除日期部分）
+            if date_match:
+                title = text[:date_match.start()].strip()
+            else:
+                title = title_elem.get_text(strip=True)
+            
+            # 提取链接
+            policy_url = title_elem.get('href')
+            
+            # 确保URL是完整的
+            if policy_url and not policy_url.startswith('http'):
+                # 检查是否是相对路径
+                if policy_url.startswith('/'):
+                    policy_url = f"http://finance.people.com.cn{policy_url}"
+                else:
+                    policy_url = f"http://finance.people.com.cn/GB/70846/{policy_url}"
             
             # 过滤：只保留前一天的文章
             if pub_at != yesterday:
