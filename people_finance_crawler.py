@@ -7,6 +7,68 @@ from datetime import datetime, timedelta
 from db_utils import save_to_policy
 
 # ==========================================
+# 辅助函数
+# ==========================================
+
+def get_article_content(url):
+    """抓取文章详情页内容
+    
+    Args:
+        url: 文章详情页链接
+        
+    Returns:
+        str: 文章内容
+    """
+    if not url:
+        return ""
+    
+    try:
+        # 发送请求
+        response = requests.get(url, timeout=20)
+        response.raise_for_status()
+        
+        # 解析HTML
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # 查找文章内容（根据人民网详情页结构调整选择器）
+        # 常见的内容容器选择器
+        content_selectors = [
+            '.article-content',       # 人民网常见的内容容器
+            '.content',                # 通用内容容器
+            '.article-body',           # 另一种常见结构
+            '.main-content',           # 主内容区
+            '.text_con',               # 人民网特定结构
+            'div[id*="content"]'      # 包含content的id
+        ]
+        
+        content = ""
+        
+        # 尝试不同的选择器
+        for selector in content_selectors:
+            content_elem = soup.select_one(selector)
+            if content_elem:
+                # 提取文本，去除多余空白
+                content = ' '.join(content_elem.stripped_strings)
+                break
+        
+        # 如果没有找到内容，尝试查找所有p标签
+        if not content:
+            p_elems = soup.find_all('p')
+            if p_elems:
+                content = ' '.join([p.get_text(strip=True) for p in p_elems[:10]])  # 取前10个p标签
+        
+        # 限制内容长度，避免存储过大的数据
+        if len(content) > 5000:
+            content = content[:5000] + "..."
+        
+        return content
+        
+    except Exception as e:
+        # 静默失败，不影响主爬虫执行
+        print(f"⚠️  抓取详情页失败 - {url[:50]}...")
+        return ""
+
+# ==========================================
 # 1. 网页抓取逻辑
 # ==========================================
 def scrape_data():
@@ -81,8 +143,8 @@ def scrape_data():
                 filtered_count += 1
                 continue
             
-            # 提取内容（这里只是示例，实际可能需要进入详情页抓取）
-            content = ""  # 可以后续实现详情页抓取
+            # 提取内容（抓取详情页内容）
+            content = get_article_content(policy_url)
             
             # 构建政策数据
             policy_data = {
@@ -91,7 +153,7 @@ def scrape_data():
                 'pub_at': pub_at,
                 'content': content,
                 'selected': False,
-                'category': '财经新闻',
+                'category': '',  # 留空，不设置默认值
                 'source': '人民网财经'
             }
             
