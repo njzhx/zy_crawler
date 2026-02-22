@@ -116,6 +116,10 @@ if __name__ == "__main__":
         import gov_crawler
         manager.register_crawler("中国政府网", gov_crawler.run)
         
+        # 导入中国政府网政策解读爬虫
+        import gov_interpretation_crawler
+        manager.register_crawler("中国政府网政策解读", gov_interpretation_crawler.run)
+        
         # 尝试导入测试爬虫（仅用于测试，非必需）
         try:
             import test_crawler
