@@ -19,11 +19,21 @@ def get_supabase_client() -> Client:
 # 2. 网页抓取逻辑
 # ==========================================
 def scrape_data():
-    """抓取中国政府网最新政策数据"""
+    """抓取中国政府网最新政策数据
+    
+    只抓取前一天发布的文章
+    例如：运行时是2026年2月18日，只抓取2026年2月17日的文章
+    """
     policies = []
     url = "https://www.gov.cn/zhengce/zuixin/"
     
     try:
+        # 计算前一天日期
+        today = datetime.now().date()
+        yesterday = today - datetime.timedelta(days=1)
+        print(f"📅 运行日期：{today}")
+        print(f"🎯 目标抓取日期：{yesterday}")
+        
         # 发送请求
         response = requests.get(url, timeout=30)
         response.raise_for_status()
@@ -34,6 +44,8 @@ def scrape_data():
         # 查找政策列表（根据实际网页结构调整选择器）
         # 注意：这里需要根据实际网页结构进行调整
         policy_items = soup.select('.list > li')
+        
+        filtered_count = 0
         
         for item in policy_items:
             # 提取标题和链接
@@ -58,6 +70,11 @@ def scrape_data():
                 except ValueError:
                     pass
             
+            # 过滤：只保留前一天的文章
+            if pub_at != yesterday:
+                filtered_count += 1
+                continue
+            
             # 提取内容（这里只是示例，实际可能需要进入详情页抓取）
             content = ""  # 可以后续实现详情页抓取
             
@@ -74,7 +91,8 @@ def scrape_data():
             
             policies.append(policy_data)
         
-        print(f"✅ 中国政府网爬虫：成功抓取 {len(policies)} 条数据")
+        print(f"✅ 中国政府网爬虫：成功抓取 {len(policies)} 条前一天数据")
+        print(f"⏭️  过滤掉 {filtered_count} 条非目标日期的数据")
         
     except Exception as e:
         print(f"❌ 中国政府网爬虫：抓取失败 - {e}")
