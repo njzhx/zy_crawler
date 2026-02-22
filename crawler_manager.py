@@ -124,6 +124,10 @@ if __name__ == "__main__":
         import ndrc_crawler
         manager.register_crawler("国家发改委", ndrc_crawler.run)
         
+        # 导入人民网财经爬虫
+        import people_finance_crawler
+        manager.register_crawler("人民网财经", people_finance_crawler.run)
+        
         # 尝试导入测试爬虫（仅用于测试，非必需）
         try:
             import test_crawler
