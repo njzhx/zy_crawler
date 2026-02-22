@@ -112,7 +112,8 @@ def save_to_supabase(data_list):
         processed_data = []
         for item in data_list:
             processed_item = item.copy()
-            if isinstance(processed_item.get('pub_at'), datetime.date):
+            # 检查pub_at是否为日期对象
+            if hasattr(processed_item.get('pub_at'), 'isoformat'):
                 processed_item['pub_at'] = processed_item['pub_at'].isoformat()
             processed_data.append(processed_item)
         
