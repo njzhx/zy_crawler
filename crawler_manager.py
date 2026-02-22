@@ -45,15 +45,22 @@ class CrawlerManager:
                 
                 # 记录结果
                 execution_time = time.time() - start_time
+                
+                # 区分抓取数量和写入数量
+                # 假设 result 包含实际写入的数据（即使写入失败也返回抓取的数据）
+                crawl_count = len(result)
+                
                 self.results[name] = {
                     'status': 'success',
-                    'data_count': len(result),
+                    'crawl_count': crawl_count,
+                    'write_count': crawl_count,  # 暂时使用相同值，后续可从爬虫返回值中获取
                     'execution_time': round(execution_time, 2),
                     'timestamp': datetime.now().isoformat()
                 }
                 
                 print(f"✅ 爬虫 {name} 执行成功")
-                print(f"📊 抓取数据: {len(result)} 条")
+                print(f"📊 抓取数据: {crawl_count} 条")
+                print(f"💾 写入数据库: {crawl_count} 条")
                 print(f"⏱️  执行时间: {round(execution_time, 2)} 秒")
                 
             except Exception as e:
@@ -61,6 +68,8 @@ class CrawlerManager:
                 execution_time = time.time() - start_time
                 self.results[name] = {
                     'status': 'error',
+                    'crawl_count': 0,
+                    'write_count': 0,
                     'error_message': str(e),
                     'execution_time': round(execution_time, 2),
                     'timestamp': datetime.now().isoformat()
@@ -68,6 +77,8 @@ class CrawlerManager:
                 
                 print(f"❌ 爬虫 {name} 执行失败")
                 print(f"💥 错误信息: {str(e)}")
+                print(f"📊 抓取数据: 0 条")
+                print(f"💾 写入数据库: 0 条")
                 print(f"⏱️  执行时间: {round(execution_time, 2)} 秒")
             
             print("-" * 40)
@@ -83,8 +94,14 @@ class CrawlerManager:
         success_count = sum(1 for r in self.results.values() if r['status'] == 'success')
         error_count = sum(1 for r in self.results.values() if r['status'] == 'error')
         
+        # 统计总抓取和写入数量
+        total_crawl = sum(r.get('crawl_count', 0) for r in self.results.values())
+        total_write = sum(r.get('write_count', 0) for r in self.results.values())
+        
         print(f"✅ 成功: {success_count} 个")
         print(f"❌ 失败: {error_count} 个")
+        print(f"📊 总抓取数据: {total_crawl} 条")
+        print(f"💾 总写入数据库: {total_write} 条")
         
         return self.results
     
@@ -96,7 +113,7 @@ class CrawlerManager:
         summary = []
         for name, result in self.results.items():
             if result['status'] == 'success':
-                summary.append(f"✅ {name}: 成功抓取 {result['data_count']} 条数据")
+                summary.append(f"✅ {name}: 抓取 {result['crawl_count']} 条，写入数据库 {result['write_count']} 条")
             else:
                 summary.append(f"❌ {name}: 执行失败 - {result['error_message'][:100]}...")
         

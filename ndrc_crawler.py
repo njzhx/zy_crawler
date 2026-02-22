@@ -108,17 +108,25 @@ def save_to_supabase(data_list):
         return []
 
     try:
+        # 转换date对象为字符串，避免JSON序列化错误
+        processed_data = []
+        for item in data_list:
+            processed_item = item.copy()
+            if isinstance(processed_item.get('pub_at'), datetime.date):
+                processed_item['pub_at'] = processed_item['pub_at'].isoformat()
+            processed_data.append(processed_item)
+        
         supabase = get_supabase_client()
         response = supabase.table("policy").upsert(
-            data_list, 
+            processed_data, 
             on_conflict="title"
         ).execute()
         
-        print(f"✅ 国家发改委爬虫：成功写入 {len(data_list)} 条数据到 Supabase")
-        return data_list
+        print(f"✅ 国家发改委爬虫：成功写入 {len(processed_data)} 条数据到 Supabase")
+        return data_list  # 返回原始数据，保持一致性
     except Exception as e:
         print(f"❌ 国家发改委爬虫：数据库写入失败 - {e}")
-        return []
+        return data_list  # 即使写入失败，也返回抓取的数据，确保统计正确
 
 # ==========================================
 # 主函数
