@@ -2,18 +2,9 @@ import os
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
-from supabase import create_client, Client
 
-# ==========================================
-# 1. 初始化 Supabase 客户端
-# ==========================================
-SUPABASE_URL = os.environ.get("SUPABASE_PROJECT_API")
-SUPABASE_KEY = os.environ.get("SUPABASE_ANON_PUBLIC")
-
-def get_supabase_client() -> Client:
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        raise ValueError("缺少 Supabase 环境变量: SUPABASE_PROJECT_API 或 SUPABASE_ANON_PUBLIC")
-    return create_client(SUPABASE_URL, SUPABASE_KEY)
+# 导入数据库工具
+from db_utils import save_to_policy
 
 # ==========================================
 # 2. 网页抓取逻辑
@@ -103,31 +94,11 @@ def scrape_data():
 # 3. 数据入库逻辑
 # ==========================================
 def save_to_supabase(data_list):
-    if not data_list:
-        print("⚠️ 国家发改委爬虫：没有抓取到任何数据，跳过写入。")
-        return []
-
-    try:
-        # 转换date对象为字符串，避免JSON序列化错误
-        processed_data = []
-        for item in data_list:
-            processed_item = item.copy()
-            # 检查pub_at是否为日期对象
-            if hasattr(processed_item.get('pub_at'), 'isoformat'):
-                processed_item['pub_at'] = processed_item['pub_at'].isoformat()
-            processed_data.append(processed_item)
-        
-        supabase = get_supabase_client()
-        response = supabase.table("policy").upsert(
-            processed_data, 
-            on_conflict="title"
-        ).execute()
-        
-        print(f"✅ 国家发改委爬虫：成功写入 {len(processed_data)} 条数据到 Supabase")
-        return data_list  # 返回原始数据，保持一致性
-    except Exception as e:
-        print(f"❌ 国家发改委爬虫：数据库写入失败 - {e}")
-        return data_list  # 即使写入失败，也返回抓取的数据，确保统计正确
+    """保存数据到数据库
+    
+    使用统一的数据库工具函数
+    """
+    return save_to_policy(data_list, "国家发改委爬虫")
 
 # ==========================================
 # 主函数
