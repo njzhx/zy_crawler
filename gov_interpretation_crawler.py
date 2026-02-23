@@ -91,7 +91,7 @@ def scrape_data():
                                         'content': content,
                                         'selected': False,
                                         'category': '',
-                                        'source': '中国政府网'
+                                        'source': '中国政府网政策解读'
                                     }
                                     json_policies.append(policy_data)
                             except Exception:
