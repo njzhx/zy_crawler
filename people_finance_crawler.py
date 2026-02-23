@@ -59,15 +59,24 @@ def get_article_content(url):
         
         # 过滤开头的"点击播报本文，约  "
         if content.startswith("点击播报本文，约  "):
-            # 找到第一个句号或合适的分隔点
-            import re
-            # 尝试找到第一个句号
-            match = re.search(r'[。.]', content[10:])
-            if match:
-                content = content[10 + match.end():].strip()
+            # 找到"约  "后面的内容
+            prefix_part = "点击播报本文，约  "
+            after_prefix = content[len(prefix_part):]
+            
+            # 尝试找到"字"字符，这应该是字数描述的结束
+            char_pos = after_prefix.find("字")
+            if char_pos != -1:
+                # 保留"字"后的所有内容
+                content = after_prefix[char_pos+1:].strip()
             else:
-                # 如果没有找到，直接去除开头部分
-                content = content[10:].strip()
+                # 如果没有找到"字"字符，尝试找到第一个空格
+                space_pos = after_prefix.find(" ")
+                if space_pos != -1:
+                    # 保留空格后的所有内容
+                    content = after_prefix[space_pos:].strip()
+                else:
+                    # 如果既没有找到"字"也没有找到空格，直接保留前缀后的所有内容
+                    content = after_prefix.strip()
         
         # 限制内容长度，避免存储过大的数据
         if len(content) > 5000:
