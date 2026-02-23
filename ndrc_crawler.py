@@ -19,11 +19,18 @@ def scrape_data():
     url = "https://www.ndrc.gov.cn/xxgk/wjk/"
     
     try:
-        # 计算前一天日期
-        today = datetime.now().date()
+        # 计算前一天日期（使用北京时间 UTC+8）
+        from datetime import timezone
+        # 创建 UTC+8 时区
+        tz_utc8 = timezone(timedelta(hours=8))
+        # 获取北京时间
+        today = datetime.now(tz_utc8).date()
         yesterday = today - timedelta(days=1)
-        print(f"📅 运行日期：{today}")
+        print(f"📅 运行日期（北京时间）：{today}")
         print(f"🎯 目标抓取日期：{yesterday}")
+        # 同时显示 UTC 时间，便于调试
+        utc_now = datetime.utcnow()
+        print(f"🌍 运行时间（UTC）：{utc_now.strftime('%Y-%m-%d %H:%M:%S')}")
         
         # 发送请求
         response = requests.get(url, timeout=30)
