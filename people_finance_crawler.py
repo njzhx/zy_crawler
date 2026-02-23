@@ -57,6 +57,18 @@ def get_article_content(url):
             if p_elems:
                 content = ' '.join([p.get_text(strip=True) for p in p_elems[:10]])  # 取前10个p标签
         
+        # 过滤开头的"点击播报本文，约  "
+        if content.startswith("点击播报本文，约  "):
+            # 找到第一个句号或合适的分隔点
+            import re
+            # 尝试找到第一个句号
+            match = re.search(r'[。.]', content[10:])
+            if match:
+                content = content[10 + match.end():].strip()
+            else:
+                # 如果没有找到，直接去除开头部分
+                content = content[10:].strip()
+        
         # 限制内容长度，避免存储过大的数据
         if len(content) > 5000:
             content = content[:5000] + "..."

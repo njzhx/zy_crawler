@@ -40,8 +40,35 @@ def scrape_data():
         soup = BeautifulSoup(response.content, 'html.parser')
         
         # 查找政策解读列表（根据实际网页结构调整选择器）
-        # 注意：这里需要根据实际网页结构进行调整
-        policy_items = soup.select('.list > li')
+        # 实际页面结构：.news_box .list 包含文章项
+        news_box = soup.select_one('.news_box')
+        policy_items = []
+        
+        print(f"\n🔍 开始查找文章项...")
+        
+        if news_box:
+            print("✅ 找到 news_box 容器")
+            # 尝试不同的选择器查找文章项
+            possible_selectors = [
+                '.list > li',            # 列表中的li
+                '.list > div',           # 列表中的div
+                'li',                    # 所有li
+                '.item',                 # 文章项
+                '.article-item'          # 文章项
+            ]
+            
+            for selector in possible_selectors:
+                items = news_box.select(selector)
+                if items:
+                    policy_items = items
+                    print(f"✅ 使用选择器 '{selector}' 找到 {len(items)} 个文章项")
+                    break
+        else:
+            # 如果没有找到news_box，尝试直接查找
+            policy_items = soup.select('li')
+            print(f"⚠️  未找到 news_box，直接查找 li 元素，找到 {len(policy_items)} 个")
+        
+        print(f"\n📋 最终找到 {len(policy_items)} 个文章项")
         
         filtered_count = 0
         
@@ -59,19 +86,60 @@ def scrape_data():
                 policy_url = f"https://www.gov.cn{policy_url}"
             
             # 提取发布日期
-            date_elem = item.select_one('.date')
             pub_at = None
-            if date_elem:
-                date_str = date_elem.get_text(strip=True)
-                try:
-                    pub_at = datetime.strptime(date_str, '%Y-%m-%d').date()
-                except ValueError:
-                    pass
+            
+            # 尝试不同的日期元素选择器
+            date_selectors = [
+                '.date',            # class为date的元素
+                'span.date',        # span标签且class为date
+                '.time',            # class为time的元素
+                'span.time'         # span标签且class为time
+            ]
+            
+            for selector in date_selectors:
+                date_elem = item.select_one(selector)
+                if date_elem:
+                    date_str = date_elem.get_text(strip=True)
+                    try:
+                        # 清理日期字符串（移除多余字符）
+                        import re
+                        date_match = re.search(r'\d{4}-\d{2}-\d{2}', date_str)
+                        if date_match:
+                            date_str = date_match.group(0)
+                            pub_at = datetime.strptime(date_str, '%Y-%m-%d').date()
+                            break
+                    except ValueError:
+                        pass
+            
+            # 如果没有找到日期元素，尝试从文本中提取
+            if not pub_at:
+                text = item.get_text(strip=True)
+                import re
+                date_match = re.search(r'\d{4}-\d{2}-\d{2}', text)
+                if date_match:
+                    try:
+                        date_str = date_match.group(0)
+                        pub_at = datetime.strptime(date_str, '%Y-%m-%d').date()
+                    except ValueError:
+                        pass
+            
+            # 调试：显示提取的日期
+            if pub_at:
+                print(f"📅 提取日期：{pub_at}，目标日期：{yesterday}")
+            else:
+                print(f"❓ 未提取到日期 - 标题：{title[:30]}...")
             
             # 过滤：只保留前一天的文章
             if pub_at != yesterday:
                 filtered_count += 1
+                if pub_at:
+                    print(f"⏭️  过滤掉非目标日期文章：{pub_at}")
+                else:
+                    print(f"⏭️  过滤掉无日期文章")
                 continue
+            
+            # 调试：找到符合条件的文章
+            print(f"✅ 找到目标日期文章：{title[:30]}...")
             
             # 提取内容（这里只是示例，实际可能需要进入详情页抓取）
             content = ""  # 可以后续实现详情页抓取
@@ -83,7 +151,7 @@ def scrape_data():
                 'pub_at': pub_at,
                 'content': content,
                 'selected': False,
-                'category': '政策解读',
+                'category': '',  # 留空，不设置默认值
                 'source': '中国政府网'
             }
             
