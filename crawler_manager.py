@@ -1,11 +1,33 @@
 import time
+import sys
 from datetime import datetime
+from io import StringIO
 
 # 导入飞书通知模块
 try:
     from feishu_notifier import send_crawler_result
 except ImportError:
     send_crawler_result = None
+
+
+class DualOutput:
+    """双输出流，同时输出到控制台和缓冲区"""
+    
+    def __init__(self, original_stdout):
+        self.original_stdout = original_stdout
+        self.buffer = StringIO()
+    
+    def write(self, text):
+        self.original_stdout.write(text)
+        self.buffer.write(text)
+    
+    def flush(self):
+        self.original_stdout.flush()
+        self.buffer.flush()
+    
+    def getvalue(self):
+        return self.buffer.getvalue()
+
 
 # ==========================================
 # 爬虫管理系统
@@ -39,6 +61,14 @@ class CrawlerManager:
         Returns:
             dict: 各爬虫执行结果
         """
+        # 开始捕获输出
+        original_stdout = sys.stdout
+        original_stderr = sys.stderr
+        dual_out = DualOutput(original_stdout)
+        dual_err = DualOutput(original_stderr)
+        sys.stdout = dual_out
+        sys.stderr = dual_err
+        
         start_datetime = datetime.now()
         print(f"\n🚀 开始执行爬虫任务 - {start_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
         print("=" * 60)
@@ -121,10 +151,17 @@ class CrawlerManager:
         print(f"📊 总抓取数据: {total_crawl} 条")
         print(f"💾 总写入数据库: {total_write} 条")
         
+        # 获取完整日志
+        full_log = dual_out.getvalue() + dual_err.getvalue()
+        
+        # 恢复标准输出
+        sys.stdout = original_stdout
+        sys.stderr = original_stderr
+        
         # 发送飞书通知
         if send_crawler_result:
             print("\n📤 正在发送飞书通知...")
-            send_crawler_result(self.results, start_datetime, end_datetime)
+            send_crawler_result(self.results, start_datetime, end_datetime, full_log)
         
         return self.results
     
