@@ -42,34 +42,87 @@ def scrape_data():
         # 解析HTML
         soup = BeautifulSoup(response.content, 'html.parser')
         
-        # 查找政策列表（根据实际网页结构调整选择器）
-        # 注意：这里需要根据实际网页结构进行调整
-        policy_items = soup.select('.list > li')
+        # 查找AJAX数据URL
+        ajax_url = None
+        scripts = soup.find_all('script')
+        for script in scripts:
+            script_content = script.string
+            if script_content and 'list-1-ajax-id' in script_content:
+                import re
+                # 尝试多种模式匹配AJAX URL
+                patterns = [
+                    r'url:\s*["\']([^"\']+)\.json["\']',
+                    r'url:\s*["\']([^"\']+)\.json["\']',
+                    r'ajax\s*:\s*["\']([^"\']+)["\']'
+                ]
+                
+                for pattern in patterns:
+                    ajax_match = re.search(pattern, script_content)
+                    if ajax_match:
+                        ajax_path = ajax_match.group(1)
+                        if not ajax_path.endswith('.json'):
+                            ajax_path += '.json'
+                        
+                        if ajax_path.startswith('http'):
+                            ajax_url = ajax_path
+                        elif ajax_path.startswith('./'):
+                            ajax_url = f"https://www.gov.cn/zhengce/zuixin/{ajax_path[2:]}"
+                        else:
+                            ajax_url = f"https://www.gov.cn/zhengce/zuixin/{ajax_path}"
+                        break
+                if ajax_url:
+                    break
+        
+        # 如果没有找到AJAX URL，尝试常见的JSON文件名
+        if not ajax_url:
+            common_json_names = [
+                "https://www.gov.cn/zhengce/zuixin/data.json",
+                "https://www.gov.cn/zhengce/zuixin/list.json",
+                "https://www.gov.cn/zhengce/zuixin/zuixin.json"
+            ]
+            # 尝试第一个常见URL
+            ajax_url = common_json_names[0]
+        
+        # 请求AJAX数据
+        policy_items = []
+        try:
+            ajax_response = requests.get(ajax_url, timeout=15)
+            if ajax_response.status_code == 200:
+                import json
+                data = ajax_response.json()
+                
+                if isinstance(data, list):
+                    policy_items = data
+        except Exception as e:
+            print(f"⚠️  AJAX请求异常: {e}")
         
         filtered_count = 0
         
         for item in policy_items:
-            # 提取标题和链接
-            title_elem = item.select_one('a')
-            if not title_elem:
+            if not isinstance(item, dict):
                 continue
             
-            title = title_elem.get_text(strip=True)
-            policy_url = title_elem.get('href')
+            # 提取标题和链接
+            title = item.get('TITLE', '')
+            policy_url = item.get('URL', '')
+            
+            if not title or not policy_url:
+                continue
             
             # 确保URL是完整的
-            if policy_url and not policy_url.startswith('http'):
+            if not policy_url.startswith('http'):
                 policy_url = f"https://www.gov.cn{policy_url}"
             
             # 提取发布日期
-            date_elem = item.select_one('.date')
+            date_str = item.get('DOCRELPUBTIME', '')
             pub_at = None
-            if date_elem:
-                date_str = date_elem.get_text(strip=True)
+            if date_str:
                 try:
                     pub_at = datetime.strptime(date_str, '%Y-%m-%d').date()
                 except ValueError:
                     pass
+            
+
             
             # 过滤：只保留前一天的文章
             if pub_at != yesterday:
