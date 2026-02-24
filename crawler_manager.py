@@ -79,7 +79,7 @@ class CrawlerManager:
             if target_url:
                 print(f"\n📦 开始执行爬虫: {name}")
                 print(f"🔗 目标网址: {target_url}")
-                print(f"   (HTML: <a href='{target_url}' target='_blank'>{name}</a>)")
+
             else:
                 print(f"\n📦 开始执行爬虫: {name}")
             print("-" * 40)
@@ -102,7 +102,8 @@ class CrawlerManager:
                     'crawl_count': crawl_count,
                     'write_count': crawl_count,  # 暂时使用相同值，后续可从爬虫返回值中获取
                     'execution_time': round(execution_time, 2),
-                    'timestamp': datetime.now().isoformat()
+                    'timestamp': datetime.now().isoformat(),
+                    'target_url': target_url
                 }
                 
                 print(f"✅ 爬虫 {name} 执行成功")
@@ -119,7 +120,8 @@ class CrawlerManager:
                     'write_count': 0,
                     'error_message': str(e),
                     'execution_time': round(execution_time, 2),
-                    'timestamp': datetime.now().isoformat()
+                    'timestamp': datetime.now().isoformat(),
+                    'target_url': target_url
                 }
                 
                 print(f"❌ 爬虫 {name} 执行失败")

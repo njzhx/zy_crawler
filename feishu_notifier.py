@@ -143,101 +143,31 @@ class FeishuNotifier:
         if not self.enabled:
             return False
         
-        total_crawl = sum(r.get('crawl_count', 0) for r in results.values())
-        total_write = sum(r.get('write_count', 0) for r in results.values())
-        success_count = sum(1 for r in results.values() if r['status'] == 'success')
-        error_count = sum(1 for r in results.values() if r['status'] == 'error')
-        total_time = (end_time - start_time).total_seconds()
-        
-        # 构建卡片内容
-        elements = []
-        
-        # 摘要部分
-        elements.append({
-            "tag": "div",
-            "text": {
-                "tag": "lark_md",
-                "content": f"**🕐 执行时间**\n{start_time.strftime('%Y-%m-%d %H:%M:%S')} - {end_time.strftime('%Y-%m-%d %H:%M:%S')}"
-            }
-        })
-        
-        elements.append({
-            "tag": "div",
-            "text": {
-                "tag": "lark_md",
-                "content": f"**⏱️ 执行时长**\n{total_time:.2f} 秒"
-            }
-        })
-        
-        elements.append({"tag": "hr"})
-        
-        # 统计信息
-        elements.append({
-            "tag": "div",
-            "text": {
-                "tag": "lark_md",
-                "content": f"**📊 统计信息**\n✅ 成功：{success_count} 个\n❌ 失败：{error_count} 个\n📦 总抓取：{total_crawl} 条\n💾 总写入：{total_write} 条"
-            }
-        })
-        
-        elements.append({"tag": "hr"})
+        # 构建简洁的文本消息
+        message_parts = []
+        message_parts.append(f"🚀 爬虫任务 - {start_time.strftime('%Y-%m-%d %H:%M:%S')}（北京时间）")
+        message_parts.append("===================")
         
         # 各爬虫详情
-        crawler_details = []
         for name, result in results.items():
+            message_parts.append(f"📦 {name}")
+            target_url = result.get('target_url', '')
+            if target_url:
+                message_parts.append(f"🔗 [{target_url}]({target_url}) （网址需要可点击）")
             status_emoji = "✅" if result['status'] == 'success' else "❌"
             if result['status'] == 'success':
-                crawler_details.append(f"{status_emoji} {name}：抓取 {result['crawl_count']} 条，写入 {result['write_count']} 条 ({result['execution_time']}s)")
+                message_parts.append(f"{status_emoji} 抓取 {result['crawl_count']} 条，写入数据库 {result['write_count']} 条")
             else:
-                crawler_details.append(f"{status_emoji} {name}：执行失败 - {result.get('error_message', '未知错误')[:50]}...")
+                message_parts.append(f"{status_emoji} 执行失败 - {result.get('error_message', '未知错误')[:50]}...")
+            message_parts.append("------------------------------")
         
-        elements.append({
-            "tag": "div",
-            "text": {
-                "tag": "lark_md",
-                "content": f"**📋 各爬虫详情**\n" + "\n".join(crawler_details)
-            }
-        })
+        message_parts.append("===================")
         
-        # 如果有完整日志，添加到备注
-        if full_log:
-            # 限制日志长度，避免消息过大
-            max_log_length = 2000
-            if len(full_log) > max_log_length:
-                full_log = full_log[:max_log_length] + "\n\n... (日志过长，已截断)"
-            
-            elements.append({"tag": "hr"})
-            elements.append({
-                "tag": "div",
-                "text": {
-                    "tag": "plain_text",
-                    "content": "📝 完整运行日志："
-                }
-            })
-            elements.append({
-                "tag": "div",
-                "text": {
-                    "tag": "plain_text",
-                    "content": full_log
-                }
-            })
+        # 构建完整消息
+        message = "\n".join(message_parts)
         
-        # 构建交互式卡片
-        card = {
-            "config": {
-                "wide_screen_mode": True
-            },
-            "header": {
-                "title": {
-                    "tag": "plain_text",
-                    "content": f"🤖 政策爬虫执行结果 - {end_time.strftime('%Y-%m-%d')}"
-                },
-                "template": "blue" if error_count == 0 else "red"
-            },
-            "elements": elements
-        }
-        
-        return self.send_interactive(card)
+        # 发送文本消息
+        return self.send_text(message)
     
     def _send(self, payload):
         """发送消息到飞书
