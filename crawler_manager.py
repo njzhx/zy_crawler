@@ -1,6 +1,12 @@
 import time
 from datetime import datetime
 
+# 导入飞书通知模块
+try:
+    from feishu_notifier import send_crawler_result
+except ImportError:
+    send_crawler_result = None
+
 # ==========================================
 # 爬虫管理系统
 # 功能：执行多个爬虫，一个爬虫出错不影响其他爬虫
@@ -33,7 +39,8 @@ class CrawlerManager:
         Returns:
             dict: 各爬虫执行结果
         """
-        print(f"\n🚀 开始执行爬虫任务 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        start_datetime = datetime.now()
+        print(f"\n🚀 开始执行爬虫任务 - {start_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
         print("=" * 60)
         
         total_start_time = time.time()
@@ -94,9 +101,10 @@ class CrawlerManager:
             print("-" * 40)
         
         total_execution_time = time.time() - total_start_time
+        end_datetime = datetime.now()
         
         print("=" * 60)
-        print(f"📋 爬虫执行完成 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"📋 爬虫执行完成 - {end_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"⏱️  总执行时间: {round(total_execution_time, 2)} 秒")
         print(f"📦 执行爬虫数: {len(self.crawlers)}")
         
@@ -112,6 +120,11 @@ class CrawlerManager:
         print(f"❌ 失败: {error_count} 个")
         print(f"📊 总抓取数据: {total_crawl} 条")
         print(f"💾 总写入数据库: {total_write} 条")
+        
+        # 发送飞书通知
+        if send_crawler_result:
+            print("\n📤 正在发送飞书通知...")
+            send_crawler_result(self.results, start_datetime, end_datetime)
         
         return self.results
     
