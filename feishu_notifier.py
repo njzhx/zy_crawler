@@ -145,7 +145,11 @@ class FeishuNotifier:
         
         # 构建简洁的文本消息
         message_parts = []
-        message_parts.append(f"🚀 爬虫任务 - {start_time.strftime('%Y-%m-%d %H:%M:%S')}（北京时间）")
+        # 转换为北京时间（UTC+8）
+        from datetime import timezone, timedelta
+        tz_utc8 = timezone(timedelta(hours=8))
+        beijing_start_time = start_time.astimezone(tz_utc8)
+        message_parts.append(f"🚀 爬虫任务 - {beijing_start_time.strftime('%Y-%m-%d %H:%M:%S')}（北京时间）")
         message_parts.append("===================")
         
         # 各爬虫详情
@@ -153,7 +157,7 @@ class FeishuNotifier:
             message_parts.append(f"📦 {name}")
             target_url = result.get('target_url', '')
             if target_url:
-                message_parts.append(f"🔗 [{target_url}]({target_url}) （网址需要可点击）")
+                message_parts.append(f"🔗 {target_url}")
             status_emoji = "✅" if result['status'] == 'success' else "❌"
             if result['status'] == 'success':
                 message_parts.append(f"{status_emoji} 抓取 {result['crawl_count']} 条，写入数据库 {result['write_count']} 条")
