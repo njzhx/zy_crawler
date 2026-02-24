@@ -6,6 +6,9 @@ from datetime import datetime, timedelta
 # 导入数据库工具
 from db_utils import save_to_policy
 
+# 爬虫配置
+TARGET_URL = "https://www.ndrc.gov.cn/xxgk/wjk/"
+
 # ==========================================
 # 2. 网页抓取逻辑
 # ==========================================
@@ -16,7 +19,7 @@ def scrape_data():
     例如：运行时是2026年2月18日，只抓取2026年2月17日的文章
     """
     policies = []
-    url = "https://www.ndrc.gov.cn/xxgk/wjk/"
+    url = TARGET_URL
     
     try:
         # 计算前一天日期（使用北京时间 UTC+8）

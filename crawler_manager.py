@@ -12,15 +12,20 @@ class CrawlerManager:
         self.crawlers = []
         self.results = {}
     
-    def register_crawler(self, name, crawler_func):
+    def register_crawler(self, name, crawler_func, crawler_module):
         """注册爬虫
         
         Args:
             name: 爬虫名称
             crawler_func: 爬虫执行函数
+            crawler_module: 爬虫模块对象，用于获取 TARGET_URL
         """
-        self.crawlers.append((name, crawler_func))
-        print(f"✅ 已注册爬虫: {name}")
+        target_url = getattr(crawler_module, 'TARGET_URL', '')
+        self.crawlers.append((name, crawler_func, target_url))
+        if target_url:
+            print(f"✅ 已注册爬虫: {name} ({target_url})")
+        else:
+            print(f"✅ 已注册爬虫: {name}")
     
     def run_all_crawlers(self):
         """执行所有爬虫
@@ -33,8 +38,13 @@ class CrawlerManager:
         
         total_start_time = time.time()
         
-        for name, crawler_func in self.crawlers:
-            print(f"\n📦 开始执行爬虫: {name}")
+        for name, crawler_func, target_url in self.crawlers:
+            if target_url:
+                print(f"\n📦 开始执行爬虫: {name}")
+                print(f"🔗 目标网址: {target_url}")
+                print(f"   (HTML: <a href='{target_url}' target='_blank'>{name}</a>)")
+            else:
+                print(f"\n📦 开始执行爬虫: {name}")
             print("-" * 40)
             
             start_time = time.time()
@@ -131,24 +141,24 @@ if __name__ == "__main__":
     try:
         # 导入中国政府网爬虫
         import gov_crawler
-        manager.register_crawler("中国政府网", gov_crawler.run)
+        manager.register_crawler("中国政府网", gov_crawler.run, gov_crawler)
         
         # 导入中国政府网政策解读爬虫
         import gov_interpretation_crawler
-        manager.register_crawler("中国政府网政策解读", gov_interpretation_crawler.run)
+        manager.register_crawler("中国政府网政策解读", gov_interpretation_crawler.run, gov_interpretation_crawler)
         
         # 导入国家发改委爬虫
         import ndrc_crawler
-        manager.register_crawler("国家发改委", ndrc_crawler.run)
+        manager.register_crawler("国家发改委", ndrc_crawler.run, ndrc_crawler)
         
         # 导入人民网财经爬虫
         import people_finance_crawler
-        manager.register_crawler("人民网财经", people_finance_crawler.run)
+        manager.register_crawler("人民网财经", people_finance_crawler.run, people_finance_crawler)
         
         # 尝试导入测试爬虫（仅用于测试，非必需）
         try:
             import test_crawler
-            manager.register_crawler("测试爬虫", test_crawler.run)
+            manager.register_crawler("测试爬虫", test_crawler.run, test_crawler)
         except ImportError:
             print("⚠️  测试爬虫模块未找到，跳过注册")
         
