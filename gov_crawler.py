@@ -129,8 +129,17 @@ def scrape_data():
                 filtered_count += 1
                 continue
             
-            # 提取内容（这里只是示例，实际可能需要进入详情页抓取）
-            content = ""  # 可以后续实现详情页抓取
+            # 提取内容 - 抓取详情页内容
+            content = ""
+            try:
+                detail_response = requests.get(policy_url, timeout=15)
+                detail_response.raise_for_status()
+                detail_soup = BeautifulSoup(detail_response.content, 'html.parser')
+                content_elem = detail_soup.select_one('#UCAP-CONTENT')
+                if content_elem:
+                    content = content_elem.get_text(strip=True)
+            except Exception:
+                pass
             
             # 构建政策数据
             policy_data = {
