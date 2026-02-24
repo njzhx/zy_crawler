@@ -150,6 +150,13 @@ class FeishuNotifier:
         tz_utc8 = timezone(timedelta(hours=8))
         beijing_start_time = start_time.astimezone(tz_utc8)
         message_parts.append(f"🚀 爬虫任务 - {beijing_start_time.strftime('%Y-%m-%d %H:%M:%S')}（北京时间）")
+        
+        # 计算统计信息
+        total_crawlers = len(results)
+        success_count = sum(1 for r in results.values() if r['status'] == 'success')
+        error_count = sum(1 for r in results.values() if r['status'] == 'error')
+        message_parts.append(f"📦 执行爬虫{total_crawlers}个，成功{success_count}个，失败{error_count}个")
+        
         message_parts.append("===================")
         
         # 各爬虫详情
