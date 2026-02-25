@@ -161,7 +161,7 @@ def scrape_data():
                                     'pub_at': pub_at,
                                     'content': content,
                                     'selected': False,
-                                    'category': '文件库',
+                                    'category': '',
                                     'source': '工信部'
                                 }
                                 policies.append(policy_data)
@@ -268,7 +268,7 @@ def scrape_data():
                                     'pub_at': pub_at,
                                     'content': content,
                                     'selected': False,
-                                    'category': '文件库',
+                                    'category': '',
                                     'source': '工信部'
                                 }
                                 policies.append(policy_data)
@@ -369,7 +369,7 @@ def scrape_data():
                                     'pub_at': pub_at,
                                     'content': content,
                                     'selected': False,
-                                    'category': '文件库',
+                                    'category': '',
                                     'source': '工信部'
                                 }
                                 policies.append(policy_data)
@@ -454,7 +454,7 @@ def scrape_data():
                                 'pub_at': pub_at,
                                 'content': content,
                                 'selected': False,
-                                'category': '文件库',
+                                'category': '',
                                 'source': '工信部'
                             }
                             policies.append(policy_data)
@@ -592,7 +592,7 @@ def scrape_data():
                                     'pub_at': pub_at,
                                     'content': content,
                                     'selected': False,
-                                    'category': '文件库',
+                                    'category': '',
                                     'source': '工信部'
                                 }
                                 policies.append(policy_data)

@@ -148,7 +148,7 @@ def scrape_data():
                 'pub_at': pub_at,
                 'content': content,
                 'selected': False,
-                'category': '政策',
+                'category': '',
                 'source': '中国政府网'
             }
             
