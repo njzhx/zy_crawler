@@ -38,7 +38,7 @@ def scrape_data():
                 title = a_tag.get('title', '').strip() or a_tag.get_text(strip=True)
                 href = a_tag.get('href', '')
                 
-                if not title or len(title) &lt; 5:
+                if not title or len(title) < 5:
                     continue
                 
                 if href.startswith('/'):
