@@ -197,36 +197,10 @@ def scrape_data():
             
             # 查找搜索结果容器
             search_content = soup.find('div', class_='search-conent')
-            # if search_content:
-            #     print("Found search_content div")
-                
+            if search_content:
                 # 查找所有可能的文章项
                 items = search_content.find_all(['div', 'li'], class_=re.compile('result|item|article|list'))
                 # print(f"Found {len(items)} potential items")
-        
-        # 尝试直接搜索具体文件
-        # print(f"\nTrying specific file search...")
-        response = requests.get(specific_url, headers=headers, timeout=30)
-        # print(f"Specific search response status: {response.status_code}")
-        
-        if response.status_code == 200:
-            # 保存页面内容以便分析
-            # with open('miit_search_specific.html', 'w', encoding='utf-8') as f:
-            #     f.write(response.text)
-            # print("Saved specific search page to miit_search_specific.html")
-            
-            soup = BeautifulSoup(response.content, 'html.parser')
-            # print(f"Page title: {soup.title.string}")
-            
-            # 查找搜索结果容器
-            search_content = soup.find('div', class_='search-conent')
-            # if search_content:
-            #     print("Found search_content div")
-                
-            #     # 查找所有可能的文章项
-            #     items = search_content.find_all(['div', 'li'], class_=re.compile('result|item|article|list'))
-            #     print(f"Found {len(items)} potential items")
-                
                 for item in items:
                     try:
                         # 查找标题和链接
@@ -285,7 +259,7 @@ def scrape_data():
                                     if content_elem:
                                         content = content_elem.get_text(strip=True)
                                 except Exception as e:
-                                    print(f"  Error fetching content: {e}")
+                                    # print(f"  Error fetching content: {e}")
                                     pass
                                 
                                 policy_data = {
@@ -307,8 +281,107 @@ def scrape_data():
                     except Exception as e:
                         # print(f"  Error processing item: {e}")
                         continue
-            # else:
-            #     print("No search content found")
+        
+        # 尝试直接搜索具体文件
+        # print(f"\nTrying specific file search...")
+        response = requests.get(specific_url, headers=headers, timeout=30)
+        # print(f"Specific search response status: {response.status_code}")
+        
+        if response.status_code == 200:
+            # 保存页面内容以便分析
+            # with open('miit_search_specific.html', 'w', encoding='utf-8') as f:
+            #     f.write(response.text)
+            # print("Saved specific search page to miit_search_specific.html")
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            # print(f"Page title: {soup.title.string}")
+            
+            # 查找搜索结果容器
+            search_content = soup.find('div', class_='search-conent')
+            if search_content:
+                # 查找所有可能的文章项
+                items = search_content.find_all(['div', 'li'], class_=re.compile('result|item|article|list'))
+                # print(f"Found {len(items)} potential items")
+                for item in items:
+                    try:
+                        # 查找标题和链接
+                        title_elem = item.find('h3') or item.find('a')
+                        if title_elem:
+                            if title_elem.name == 'h3':
+                                a_tag = title_elem.find('a')
+                            else:
+                                a_tag = title_elem
+                            
+                            if a_tag:
+                                title = a_tag.get('title', '').strip() or a_tag.get_text(strip=True)
+                                href = a_tag.get('href', '')
+                                
+                                if not title or len(title) < 5:
+                                    continue
+                                
+                                # 构建完整URL
+                                if href.startswith('/'):
+                                    article_url = "https://www.miit.gov.cn" + href
+                                elif not href.startswith('http'):
+                                    article_url = "https://www.miit.gov.cn/search/" + href
+                                else:
+                                    article_url = href
+                                
+                                # 查找日期
+                                pub_at = None
+                                # 尝试从不同位置查找日期
+                                date_elems = item.find_all(['span', 'div'], class_=re.compile('date|time|发布日期'))
+                                for date_elem in date_elems:
+                                    date_text = date_elem.get_text(strip=True)
+                                    date_match = re.search(r'(\d{4})[-/\.](\d{1,2})[-/\.](\d{1,2})', date_text)
+                                    if date_match:
+                                        try:
+                                            pub_at = datetime.strptime(f"{date_match.group(1)}-{date_match.group(2)}-{date_match.group(3)}", '%Y-%m-%d').date()
+                                            break
+                                        except ValueError:
+                                            pass
+                                
+                                # 如果没找到日期，尝试从文本中提取
+                                if not pub_at:
+                                    date_match = re.search(r'(\d{4})[-/\.](\d{1,2})[-/\.](\d{1,2})', item.get_text())
+                                    if date_match:
+                                        try:
+                                            pub_at = datetime.strptime(f"{date_match.group(1)}-{date_match.group(2)}-{date_match.group(3)}", '%Y-%m-%d').date()
+                                        except ValueError:
+                                            pass
+                                
+                                # 抓取内容
+                                content = ""
+                                try:
+                                    detail_resp = requests.get(article_url, headers=headers, timeout=15)
+                                    detail_soup = BeautifulSoup(detail_resp.content, 'html.parser')
+                                    # 优先使用 #con_con，然后尝试其他选择器
+                                    content_elem = detail_soup.select_one('#con_con') or detail_soup.select_one('.content') or detail_soup.select_one('#content') or detail_soup.select_one('.article-content') or detail_soup.select_one('.TRS_Editor')
+                                    if content_elem:
+                                        content = content_elem.get_text(strip=True)
+                                except Exception as e:
+                                    # print(f"  Error fetching content: {e}")
+                                    pass
+                                
+                                policy_data = {
+                                    'title': title,
+                                    'url': article_url,
+                                    'pub_at': pub_at,
+                                    'content': content,
+                                    'selected': False,
+                                    'category': '文件库',
+                                    'source': '工信部'
+                                }
+                                policies.append(policy_data)
+                                # print(f"  Found: {title}")
+                                # print(f"  URL: {article_url}")
+                                # print(f"  Date: {pub_at}")
+                                # print(f"  Content length: {len(content)} chars")
+                                # print("-" * 60)
+                                
+                    except Exception as e:
+                        # print(f"  Error processing item: {e}")
+                        continue
         
         # 尝试另一种方法：直接访问可能的列表页
         alternative_urls = [
@@ -434,12 +507,10 @@ def scrape_data():
                 
                 # 查找搜索结果
                 search_content = soup.find('div', class_='search-con')
-                # if search_content:
-                #     print("Found search-con div with Selenium")
-                    
-                #     # 查找所有文章项
-                #     items = search_content.find_all('div', class_='jcse-result-box')
-                #     print(f"Found {len(items)} items with Selenium")
+                if search_content:
+                    # 查找所有文章项
+                    items = search_content.find_all('div', class_='jcse-result-box')
+                    # print(f"Found {len(items)} items with Selenium")
                     
                     for item in items:
                         try:
@@ -534,8 +605,6 @@ def scrape_data():
                         except Exception as e:
                             # print(f"  Error processing Selenium item: {e}")
                             continue
-                # else:
-                #     print("No search content found with Selenium")
                 
                 # 关闭浏览器
                 driver.quit()
