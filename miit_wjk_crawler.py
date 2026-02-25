@@ -147,8 +147,8 @@ def scrape_data():
                                 try:
                                     detail_resp = requests.get(article_url, headers=headers, timeout=15)
                                     detail_soup = BeautifulSoup(detail_resp.content, 'html.parser')
-                                    # 尝试多种内容选择器
-                                    content_elem = detail_soup.select_one('.content') or detail_soup.select_one('#content') or detail_soup.select_one('.article-content') or detail_soup.select_one('.TRS_Editor')
+                                    # 优先使用 #con_con，然后尝试其他选择器
+                                    content_elem = detail_soup.select_one('#con_con') or detail_soup.select_one('.content') or detail_soup.select_one('#content') or detail_soup.select_one('.article-content') or detail_soup.select_one('.TRS_Editor')
                                     if content_elem:
                                         content = content_elem.get_text(strip=True)
                                 except Exception as e:
@@ -279,8 +279,8 @@ def scrape_data():
                                 try:
                                     detail_resp = requests.get(article_url, headers=headers, timeout=15)
                                     detail_soup = BeautifulSoup(detail_resp.content, 'html.parser')
-                                    # 尝试多种内容选择器
-                                    content_elem = detail_soup.select_one('.content') or detail_soup.select_one('#content') or detail_soup.select_one('.article-content') or detail_soup.select_one('.TRS_Editor')
+                                    # 优先使用 #con_con，然后尝试其他选择器
+                                    content_elem = detail_soup.select_one('#con_con') or detail_soup.select_one('.content') or detail_soup.select_one('#content') or detail_soup.select_one('.article-content') or detail_soup.select_one('.TRS_Editor')
                                     if content_elem:
                                         content = content_elem.get_text(strip=True)
                                 except Exception as e:
@@ -368,7 +368,7 @@ def scrape_data():
                             try:
                                 detail_resp = requests.get(article_url, headers=headers, timeout=15)
                                 detail_soup = BeautifulSoup(detail_resp.content, 'html.parser')
-                                content_elem = detail_soup.select_one('.content') or detail_soup.select_one('#content')
+                                content_elem = detail_soup.select_one('#con_con') or detail_soup.select_one('.content') or detail_soup.select_one('#content')
                                 if content_elem:
                                     content = content_elem.get_text(strip=True)
                             except Exception:
@@ -487,8 +487,9 @@ def scrape_data():
                                     driver.get(article_url)
                                     time.sleep(5)  # 增加等待时间
                                     detail_soup = BeautifulSoup(driver.page_source, 'html.parser')
-                                    # 尝试多种内容选择器
+                                    # 尝试多种内容选择器，优先使用 #con_con
                                     content_selectors = [
+                                        '#con_con',
                                         '.content',
                                         '#content',
                                         '.article-content',
