@@ -40,21 +40,21 @@ def scrape_data():
         # 使用前一天的日期
         yesterday = today - timedelta(days=1)
         # yesterday = datetime(2026, 2, 24).date()  # 测试用户提到的日期
-        print(f"Date (Beijing): {today}")
-        print(f"Target date: {yesterday}")
+        # print(f"Date (Beijing): {today}")
+        # print(f"Target date: {yesterday}")
         
-        print("Note: This site uses dynamic loading, trying different approaches...")
+        # print("Note: This site uses dynamic loading, trying different approaches...")
         
         # 尝试直接构造搜索URL，包含日期参数
         search_url = f"https://www.miit.gov.cn/search/zcwjk.html?websiteid=110000000000000&pg=10&p=1&tpl=14&category=183&q=&begin={yesterday}&end={yesterday}"
-        print(f"Trying search URL: {search_url}")
+        # print(f"Trying search URL: {search_url}")
         
         # 尝试直接搜索用户提到的具体文件
         specific_url = f"https://www.miit.gov.cn/search/zcwjk.html?websiteid=110000000000000&pg=10&p=1&tpl=14&category=183&q=工业和信息化部办公厅关于公布数字赋能基层减负典型案例名单的通知"
-        print(f"Trying specific file URL: {specific_url}")
+        # print(f"Trying specific file URL: {specific_url}")
         
         # 尝试直接调用API
-        print("\nTrying API approach...")
+        # print("\nTrying API approach...")
         api_url = "https://www.miit.gov.cn/search-front-server/api/search/info"
         
         # 构建查询参数 - 基于search.js的分析
@@ -84,26 +84,26 @@ def scrape_data():
         if 'Content-Type' in headers:
             del headers['Content-Type']
         response = requests.get(api_url, params=params, headers=headers, timeout=30)
-        print(f"API Response status: {response.status_code}")
+        # print(f"API Response status: {response.status_code}")
         
         if response.status_code == 200:
             try:
                 data = response.json()
-                print(f"API Response received: {type(data)}")
+                # print(f"API Response received: {type(data)}")
                 # 保存API响应以便分析
-                with open('miit_api_response.json', 'w', encoding='utf-8') as f:
-                    import json
-                    json.dump(data, f, ensure_ascii=False, indent=2)
-                print("Saved API response to miit_api_response.json")
+                # with open('miit_api_response.json', 'w', encoding='utf-8') as f:
+                #     import json
+                #     json.dump(data, f, ensure_ascii=False, indent=2)
+                # print("Saved API response to miit_api_response.json")
                 
                 # 处理API响应
                 if data and 'data' in data and 'searchResult' in data['data']:
                     search_result = data['data']['searchResult']
-                    print(f"Total hits: {search_result.get('totalHits', 0)}")
+                    # print(f"Total hits: {search_result.get('totalHits', 0)}")
                     
                     if 'dataResults' in search_result and search_result['dataResults']:
                         data_results = search_result['dataResults']
-                        print(f"Found {len(data_results)} items")
+                        # print(f"Found {len(data_results)} items")
                         
                         for result in data_results:
                             try:
@@ -165,66 +165,67 @@ def scrape_data():
                                     'source': '工信部'
                                 }
                                 policies.append(policy_data)
-                                print(f"  Found: {title}")
-                                print(f"  URL: {article_url}")
-                                print(f"  Date: {pub_at}")
-                                print(f"  Content length: {len(content)} chars")
-                                print("-" * 60)
+                                # print(f"  Found: {title}")
+                                # print(f"  URL: {article_url}")
+                                # print(f"  Date: {pub_at}")
+                                # print(f"  Content length: {len(content)} chars")
+                                # print("-" * 60)
                                 
                             except Exception as e:
-                                print(f"  Error processing API result: {e}")
+                                # print(f"  Error processing API result: {e}")
                                 continue
             except Exception as e:
-                print(f"Error parsing JSON: {e}")
+                # print(f"Error parsing JSON: {e}")
                 # 保存原始响应
-                with open('miit_api_raw.txt', 'w', encoding='utf-8') as f:
-                    f.write(response.text)
-                print("Saved raw API response to miit_api_raw.txt")
+                # with open('miit_api_raw.txt', 'w', encoding='utf-8') as f:
+                #     f.write(response.text)
+                # print("Saved raw API response to miit_api_raw.txt")
+                pass
         
         # 尝试传统方法 - 日期筛选
         response = requests.get(search_url, headers=headers, timeout=30)
-        print(f"\nTraditional approach - Response status: {response.status_code}")
+        # print(f"\nTraditional approach - Response status: {response.status_code}")
         
         if response.status_code == 200:
             # 保存页面内容以便分析
-            with open('miit_search_date.html', 'w', encoding='utf-8') as f:
-                f.write(response.text)
-            print("Saved date search page to miit_search_date.html")
+            # with open('miit_search_date.html', 'w', encoding='utf-8') as f:
+            #     f.write(response.text)
+            # print("Saved date search page to miit_search_date.html")
             
             soup = BeautifulSoup(response.content, 'html.parser')
-            print(f"Page title: {soup.title.string}")
+            # print(f"Page title: {soup.title.string}")
             
             # 查找搜索结果容器
             search_content = soup.find('div', class_='search-conent')
-            if search_content:
-                print("Found search_content div")
+            # if search_content:
+            #     print("Found search_content div")
                 
                 # 查找所有可能的文章项
                 items = search_content.find_all(['div', 'li'], class_=re.compile('result|item|article|list'))
-                print(f"Found {len(items)} potential items")
+                # print(f"Found {len(items)} potential items")
         
         # 尝试直接搜索具体文件
-        print(f"\nTrying specific file search...")
+        # print(f"\nTrying specific file search...")
         response = requests.get(specific_url, headers=headers, timeout=30)
-        print(f"Specific search response status: {response.status_code}")
+        # print(f"Specific search response status: {response.status_code}")
         
         if response.status_code == 200:
             # 保存页面内容以便分析
-            with open('miit_search_specific.html', 'w', encoding='utf-8') as f:
-                f.write(response.text)
-            print("Saved specific search page to miit_search_specific.html")
+            # with open('miit_search_specific.html', 'w', encoding='utf-8') as f:
+            #     f.write(response.text)
+            # print("Saved specific search page to miit_search_specific.html")
             
             soup = BeautifulSoup(response.content, 'html.parser')
-            print(f"Page title: {soup.title.string}")
+            # print(f"Page title: {soup.title.string}")
             
             # 查找搜索结果容器
             search_content = soup.find('div', class_='search-conent')
-            if search_content:
-                print("Found search_content div")
+            # if search_content:
+            #     print("Found search_content div")
                 
-                # 查找所有可能的文章项
-                items = search_content.find_all(['div', 'li'], class_=re.compile('result|item|article|list'))
-                print(f"Found {len(items)} potential items")
+            #     # 查找所有可能的文章项
+            #     items = search_content.find_all(['div', 'li'], class_=re.compile('result|item|article|list'))
+            #     print(f"Found {len(items)} potential items")
                 
                 for item in items:
                     try:
@@ -297,17 +298,17 @@ def scrape_data():
                                     'source': '工信部'
                                 }
                                 policies.append(policy_data)
-                                print(f"  Found: {title}")
-                                print(f"  URL: {article_url}")
-                                print(f"  Date: {pub_at}")
-                                print(f"  Content length: {len(content)} chars")
-                                print("-" * 60)
+                                # print(f"  Found: {title}")
+                                # print(f"  URL: {article_url}")
+                                # print(f"  Date: {pub_at}")
+                                # print(f"  Content length: {len(content)} chars")
+                                # print("-" * 60)
                                 
                     except Exception as e:
-                        print(f"  Error processing item: {e}")
+                        # print(f"  Error processing item: {e}")
                         continue
-            else:
-                print("No search content found")
+            # else:
+            #     print("No search content found")
         
         # 尝试另一种方法：直接访问可能的列表页
         alternative_urls = [
@@ -320,19 +321,19 @@ def scrape_data():
             if policies:
                 break
             
-            print(f"\nTrying alternative URL: {alt_url}")
+            # print(f"\nTrying alternative URL: {alt_url}")
             try:
                 response = requests.get(alt_url, headers=headers, timeout=30)
                 if response.status_code == 200:
                     # 保存页面内容以便分析
-                    if 'xzgfxwj' in alt_url:
-                        with open('miit_xzgfxwj.html', 'w', encoding='utf-8') as f:
-                            f.write(response.text)
-                        print("Saved xzgfxwj page to miit_xzgfxwj.html")
+                    # if 'xzgfxwj' in alt_url:
+                    #     with open('miit_xzgfxwj.html', 'w', encoding='utf-8') as f:
+                    #         f.write(response.text)
+                    #     print("Saved xzgfxwj page to miit_xzgfxwj.html")
                     
                     soup = BeautifulSoup(response.content, 'html.parser')
                     items = soup.find_all('li')
-                    print(f"Found {len(items)} items")
+                    # print(f"Found {len(items)} items")
                     
                     for item in items:
                         try:
@@ -384,22 +385,22 @@ def scrape_data():
                                 'source': '工信部'
                             }
                             policies.append(policy_data)
-                            print(f"  Found: {title}")
-                            print(f"  URL: {article_url}")
-                            print(f"  Date: {pub_at}")
-                            print(f"  Content length: {len(content)} chars")
-                            print("-" * 60)
+                            # print(f"  Found: {title}")
+                            # print(f"  URL: {article_url}")
+                            # print(f"  Date: {pub_at}")
+                            # print(f"  Content length: {len(content)} chars")
+                            # print("-" * 60)
                             
                         except Exception as e:
-                            print(f"  Error processing alternative item: {e}")
+                            # print(f"  Error processing alternative item: {e}")
                             continue
             except Exception as e:
-                print(f"Error with alternative URL {alt_url}: {e}")
+                # print(f"Error with alternative URL {alt_url}: {e}")
                 continue
         
         # 尝试使用Selenium获取动态内容
         if not policies and SELENIUM_AVAILABLE:
-            print("\nTrying Selenium approach...")
+            # print("\nTrying Selenium approach...")
             try:
                 # 配置Chrome选项
                 chrome_options = Options()
@@ -416,7 +417,7 @@ def scrape_data():
                 
                 # 访问搜索页面
                 search_url = f"https://www.miit.gov.cn/search/zcwjk.html?websiteid=110000000000000&pg=10&p=1&tpl=14&category=183&q=数字赋能基层减负"
-                print(f"Selenium visiting: {search_url}")
+                # print(f"Selenium visiting: {search_url}")
                 driver.get(search_url)
                 
                 # 等待页面加载
@@ -424,21 +425,21 @@ def scrape_data():
                 
                 # 保存页面内容
                 page_source = driver.page_source
-                with open('miit_selenium_page.html', 'w', encoding='utf-8') as f:
-                    f.write(page_source)
-                print("Saved Selenium page to miit_selenium_page.html")
+                # with open('miit_selenium_page.html', 'w', encoding='utf-8') as f:
+                #     f.write(page_source)
+                # print("Saved Selenium page to miit_selenium_page.html")
                 
                 # 解析页面
                 soup = BeautifulSoup(page_source, 'html.parser')
                 
                 # 查找搜索结果
                 search_content = soup.find('div', class_='search-con')
-                if search_content:
-                    print("Found search-con div with Selenium")
+                # if search_content:
+                #     print("Found search-con div with Selenium")
                     
-                    # 查找所有文章项
-                    items = search_content.find_all('div', class_='jcse-result-box')
-                    print(f"Found {len(items)} items with Selenium")
+                #     # 查找所有文章项
+                #     items = search_content.find_all('div', class_='jcse-result-box')
+                #     print(f"Found {len(items)} items with Selenium")
                     
                     for item in items:
                         try:
@@ -509,9 +510,9 @@ def scrape_data():
                                         paragraphs = detail_soup.find_all('p')
                                         if paragraphs:
                                             content = ' '.join([p.get_text(strip=True) for p in paragraphs])
-                                    print(f"  Content fetched successfully: {len(content) > 0}")
+                                    # print(f"  Content fetched successfully: {len(content) > 0}")
                                 except Exception as e:
-                                    print(f"  Error fetching content with Selenium: {e}")
+                                    # print(f"  Error fetching content with Selenium: {e}")
                                     pass
                                 
                                 policy_data = {
@@ -524,34 +525,36 @@ def scrape_data():
                                     'source': '工信部'
                                 }
                                 policies.append(policy_data)
-                                print(f"  Found with Selenium: {title}")
-                                print(f"  URL: {article_url}")
-                                print(f"  Date: {pub_at}")
-                                print(f"  Content length: {len(content)} chars")
-                                print("-" * 60)
+                                # print(f"  Found with Selenium: {title}")
+                                # print(f"  URL: {article_url}")
+                                # print(f"  Date: {pub_at}")
+                                # print(f"  Content length: {len(content)} chars")
+                                # print("-" * 60)
                                 
                         except Exception as e:
-                            print(f"  Error processing Selenium item: {e}")
+                            # print(f"  Error processing Selenium item: {e}")
                             continue
-                else:
-                    print("No search content found with Selenium")
+                # else:
+                #     print("No search content found with Selenium")
                 
                 # 关闭浏览器
                 driver.quit()
                 
             except Exception as e:
-                print(f"Selenium error: {e}")
+                # print(f"Selenium error: {e}")
                 try:
                     driver.quit()
                 except:
                     pass
         elif not policies and not SELENIUM_AVAILABLE:
-            print("\nSelenium not available, skipping Selenium approach")
+            # print("\nSelenium not available, skipping Selenium approach")
+            pass
         
-        print(f"Found {len(policies)} items for target date")
+        # print(f"Found {len(policies)} items for target date")
         
     except Exception as e:
-        print(f"Error: {e}")
+        # print(f"Error: {e}")
+        pass
     
     return policies
 
