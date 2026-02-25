@@ -4,13 +4,19 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timedelta, timezone
 import re
 import time
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.service import Service
+
+# Selenium 为可选依赖
+try:
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from webdriver_manager.chrome import ChromeDriverManager
+    from selenium.webdriver.chrome.service import Service
+    SELENIUM_AVAILABLE = True
+except ImportError:
+    SELENIUM_AVAILABLE = False
 
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -392,7 +398,7 @@ def scrape_data():
                 continue
         
         # 尝试使用Selenium获取动态内容
-        if not policies:
+        if not policies and SELENIUM_AVAILABLE:
             print("\nTrying Selenium approach...")
             try:
                 # 配置Chrome选项
@@ -538,6 +544,8 @@ def scrape_data():
                     driver.quit()
                 except:
                     pass
+        elif not policies and not SELENIUM_AVAILABLE:
+            print("\nSelenium not available, skipping Selenium approach")
         
         print(f"Found {len(policies)} items for target date")
         
