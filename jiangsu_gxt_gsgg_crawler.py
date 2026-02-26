@@ -26,64 +26,96 @@ def scrape_data():
         response.raise_for_status()
         soup = BeautifulSoup(response.content, 'html.parser')
         
-        items = soup.find_all('li')
+        # 查找包含 datastore 的 script 标签
+        script_tags = soup.find_all('script')
+        datastore_script = None
+        
+        for script in script_tags:
+            if script.string and '<datastore>' in script.string:
+                datastore_script = script.string
+                break
+        
         filtered_count = 0
         
-        for item in items:
-            try:
-                a_tag = item.find('a')
-                if not a_tag:
-                    continue
+        if datastore_script:
+            # 提取 datastore 内容
+            import re
+            datastore_match = re.search(r'<datastore>([\s\S]*?)</datastore>', datastore_script)
+            if datastore_match:
+                datastore_content = datastore_match.group(1)
                 
-                title = a_tag.get('title', '').strip() or a_tag.get_text(strip=True)
-                href = a_tag.get('href', '')
-                
-                if not title or len(title) < 5:
-                    continue
-                
-                if href.startswith('/'):
-                    article_url = "https://gxt.jiangsu.gov.cn" + href
-                elif not href.startswith('http'):
-                    article_url = "https://gxt.jiangsu.gov.cn/col/col6281/" + href
-                else:
-                    article_url = href
-                
-                pub_at = None
-                date_text = item.get_text()
-                date_match = re.search(r'(\d{4})[-/\.](\d{1,2})[-/\.](\d{1,2})', date_text)
-                if date_match:
-                    try:
-                        pub_at = datetime.strptime(f"{date_match.group(1)}-{date_match.group(2)}-{date_match.group(3)}", '%Y-%m-%d').date()
-                    except ValueError:
-                        pass
-                
-                if pub_at != yesterday:
-                    filtered_count += 1
-                    continue
-                
-                content = ""
-                try:
-                    detail_resp = requests.get(article_url, headers=headers, timeout=15)
-                    detail_soup = BeautifulSoup(detail_resp.content, 'html.parser')
-                    content_elem = detail_soup.select_one('.content') or detail_soup.select_one('#content')
-                    if content_elem:
-                        content = content_elem.get_text(strip=True)
-                except Exception:
-                    pass
-                
-                policy_data = {
-                    'title': title,
-                    'url': article_url,
-                    'pub_at': pub_at,
-                    'content': content,
-                    'selected': False,
-                    'category': '公示公告',
-                    'source': '江苏省工信厅'
-                }
-                policies.append(policy_data)
-                
-            except Exception:
-                continue
+                # 提取 recordset 内容
+                recordset_match = re.search(r'<recordset>([\s\S]*?)</recordset>', datastore_content)
+                if recordset_match:
+                    recordset_content = recordset_match.group(1)
+                    
+                    # 提取所有 record 内容
+                    records = re.findall(r'<record><!\[CDATA\[([\s\S]*?)\]\]></record>', recordset_content)
+                    
+                    for record in records:
+                        try:
+                            # 解析 record 中的 HTML
+                            record_soup = BeautifulSoup(record, 'html.parser')
+                            li = record_soup.find('li')
+                            if not li:
+                                continue
+                            
+                            a_tag = li.find('a')
+                            if not a_tag:
+                                continue
+                            
+                            title = a_tag.get('title', '').strip() or a_tag.get_text(strip=True)
+                            href = a_tag.get('href', '')
+                            
+                            if not title or len(title) < 5:
+                                continue
+                            
+                            if href.startswith('/'):
+                                article_url = "https://gxt.jiangsu.gov.cn" + href
+                            elif not href.startswith('http'):
+                                article_url = "https://gxt.jiangsu.gov.cn/col/col6281/" + href
+                            else:
+                                article_url = href
+                            
+                            pub_at = None
+                            date_text = li.get_text()
+                            date_match = re.search(r'(\d{4})[-/\.](\d{1,2})[-/\.](\d{1,2})', date_text)
+                            if date_match:
+                                try:
+                                    pub_at = datetime.strptime(f"{date_match.group(1)}-{date_match.group(2)}-{date_match.group(3)}", '%Y-%m-%d').date()
+                                except ValueError:
+                                    pass
+                            
+                            if pub_at != yesterday:
+                                filtered_count += 1
+                                continue
+                            
+                            content = ""
+                            try:
+                                detail_resp = requests.get(article_url, headers=headers, timeout=15)
+                                detail_soup = BeautifulSoup(detail_resp.content, 'html.parser')
+                                content_elem = detail_soup.select_one('.content') or detail_soup.select_one('#content')
+                                if content_elem:
+                                    content = content_elem.get_text(strip=True)
+                            except Exception:
+                                pass
+                            
+                            policy_data = {
+                                'title': title,
+                                'url': article_url,
+                                'pub_at': pub_at,
+                                'content': content,
+                                'selected': False,
+                                'category': '公示公告',
+                                'source': '江苏省工信厅'
+                            }
+                            policies.append(policy_data)
+                            print(f"  Found: {title}")
+                            print(f"  URL: {article_url}")
+                            print(f"  Date: {pub_at}")
+                            
+                        except Exception:
+                            continue
         
         print(f"Found {len(policies)} items for target date")
         print(f"Skipped {filtered_count} items")
