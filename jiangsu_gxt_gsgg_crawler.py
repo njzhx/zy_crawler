@@ -107,8 +107,8 @@ def scrape_data():
                                 'pub_at': pub_at,
                                 'content': content,
                                 'selected': False,
-                                'category': '公示公告',
-                                'source': '江苏省工信厅'
+                                'category': '',
+                                'source': '江苏省工信厅_公示公告'
                             }
                             policies.append(policy_data)
                             print(f"  Found: {title}")
