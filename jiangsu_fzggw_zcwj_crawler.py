@@ -5,7 +5,11 @@ from datetime import datetime, timedelta, timezone
 import re
 
 headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    'Referer': 'https://fzggw.jiangsu.gov.cn/module/jslib/zcjd/zcjd.htm',
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'Accept': 'application/json, text/javascript, */*; q=0.01',
+    'X-Requested-With': 'XMLHttpRequest'
 }
 
 TARGET_URL = "https://fzggw.jiangsu.gov.cn/module/jslib/zcjd/zcjd.htm"
@@ -13,7 +17,6 @@ TARGET_URL = "https://fzggw.jiangsu.gov.cn/module/jslib/zcjd/zcjd.htm"
 
 def scrape_data():
     policies = []
-    url = TARGET_URL
     
     try:
         tz_utc8 = timezone(timedelta(hours=8))
@@ -22,71 +25,96 @@ def scrape_data():
         print(f"Date (Beijing): {today}")
         print(f"Target date: {yesterday}")
         
-        response = requests.get(url, headers=headers, timeout=30)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.content, 'html.parser')
+        # 使用 API 接口获取数据
+        api_url = "https://fzggw.jiangsu.gov.cn/module/jslib/zcjd/right.jsp"
+        page_no = 1
+        page_size = 10
         
-        items = soup.find_all('li')
-        filtered_count = 0
-        
-        for item in items:
-            try:
-                a_tag = item.find('a')
-                if not a_tag:
-                    continue
-                
-                title = a_tag.get('title', '').strip() or a_tag.get_text(strip=True)
-                href = a_tag.get('href', '')
-                
-                if not title or len(title) < 5:
-                    continue
-                
-                if href.startswith('/'):
-                    article_url = "https://fzggw.jiangsu.gov.cn" + href
-                elif not href.startswith('http'):
-                    article_url = "https://fzggw.jiangsu.gov.cn/module/jslib/zcjd/" + href
-                else:
-                    article_url = href
-                
-                pub_at = None
-                date_text = item.get_text()
-                date_match = re.search(r'(\d{4})[-/\.](\d{1,2})[-/\.](\d{1,2})', date_text)
-                if date_match:
-                    try:
-                        pub_at = datetime.strptime(f"{date_match.group(1)}-{date_match.group(2)}-{date_match.group(3)}", '%Y-%m-%d').date()
-                    except ValueError:
-                        pass
-                
-                if pub_at != yesterday:
-                    filtered_count += 1
-                    continue
-                
-                content = ""
+        while True:
+            data = {
+                "name": "",
+                "keytype": "",
+                "year": "2026",
+                "ztflid": "",
+                "fwlbbm": "",
+                "pageSize": page_size,
+                "pageNo": page_no
+            }
+            
+            response = requests.post(api_url, headers=headers, data=data, timeout=30)
+            response.raise_for_status()
+            
+            # 解析 JSON 响应
+            import json
+            json_data = json.loads(response.text)
+            
+            if not json_data.get('result'):
+                break
+            
+            items = json_data.get('data', [])
+            if not items:
+                break
+            
+            for item in items:
                 try:
-                    detail_resp = requests.get(article_url, headers=headers, timeout=15)
-                    detail_soup = BeautifulSoup(detail_resp.content, 'html.parser')
-                    content_elem = detail_soup.select_one('.content') or detail_soup.select_one('#content')
-                    if content_elem:
-                        content = content_elem.get_text(strip=True)
+                    title = item.get('vc_title', '').strip()
+                    url = item.get('url', '')
+                    c_deploytime = item.get('c_deploytime', '')
+                    
+                    if not title or len(title) < 5:
+                        continue
+                    
+                    # 构建完整的文章 URL
+                    if url.startswith('/'):
+                        article_url = "https://fzggw.jiangsu.gov.cn" + url
+                    elif not url.startswith('http'):
+                        article_url = "https://fzggw.jiangsu.gov.cn/module/jslib/zcjd/" + url
+                    else:
+                        article_url = url
+                    
+                    # 解析发布时间
+                    pub_at = None
+                    if c_deploytime:
+                        try:
+                            # 假设日期格式为 YYYY-MM-DD
+                            pub_at = datetime.strptime(c_deploytime, '%Y-%m-%d').date()
+                        except ValueError:
+                            pass
+                    
+                    if pub_at != yesterday:
+                        continue
+                    
+                    # 获取文章内容
+                    content = ""
+                    try:
+                        detail_resp = requests.get(article_url, headers=headers, timeout=15)
+                        detail_soup = BeautifulSoup(detail_resp.content, 'html.parser')
+                        content_elem = detail_soup.select_one('.content') or detail_soup.select_one('#content')
+                        if content_elem:
+                            content = content_elem.get_text(strip=True)
+                    except Exception:
+                        pass
+                    
+                    policy_data = {
+                        'title': title,
+                        'url': article_url,
+                        'pub_at': pub_at,
+                        'content': content,
+                        'selected': False,
+                        'category': '',
+                        'source': '江苏省发改委'
+                    }
+                    policies.append(policy_data)
+                    
                 except Exception:
-                    pass
-                
-                policy_data = {
-                    'title': title,
-                    'url': article_url,
-                    'pub_at': pub_at,
-                    'content': content,
-                    'selected': False,
-                    'category': '政策文件',
-                    'source': '江苏省发改委'
-                }
-                policies.append(policy_data)
-                
-            except Exception:
-                continue
+                    continue
+            
+            # 检查是否还有更多页面
+            if len(items) < page_size:
+                break
+            page_no += 1
         
         print(f"Found {len(policies)} items for target date")
-        print(f"Skipped {filtered_count} items")
         
     except Exception as e:
         print(f"Error: {e}")
