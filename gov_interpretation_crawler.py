@@ -66,6 +66,9 @@ def scrape_data():
                 
                 if isinstance(data, list):
                     # 筛选目标日期的文章
+                    total_count = len(data)
+                    filtered_count = 0
+                    
                     for article in data:
                         if isinstance(article, dict) and 'TITLE' in article and 'URL' in article and 'DOCRELPUBTIME' in article:
                             try:
@@ -97,11 +100,15 @@ def scrape_data():
                                         'source': '中国政府网政策解读'
                                     }
                                     json_policies.append(policy_data)
+                                else:
+                                    filtered_count += 1
                             except Exception:
+                                filtered_count += 1
                                 pass
                     
                     if json_policies:
                         print(f"✅ 成功抓取 {len(json_policies)} 条目标日期的文章")
+                        print(f"⏭️  过滤掉 {filtered_count} 条非目标日期的数据")
                         return json_policies
         except Exception as e:
             print(f"⚠️  访问JSON文件失败：{e}")

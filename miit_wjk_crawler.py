@@ -40,10 +40,12 @@ def scrape_data():
         # 使用前一天的日期
         yesterday = today - timedelta(days=1)
         # yesterday = datetime(2026, 2, 24).date()  # 测试用户提到的日期
-        # print(f"Date (Beijing): {today}")
-        # print(f"Target date: {yesterday}")
+        print(f"Date (Beijing): {today}")
+        print(f"Target date: {yesterday}")
         
-        # print("Note: This site uses dynamic loading, trying different approaches...")
+        print("Note: This site uses dynamic loading, trying different approaches...")
+        
+        filtered_count = 0
         
         # 尝试直接构造搜索URL，包含日期参数
         search_url = f"https://www.miit.gov.cn/search/zcwjk.html?websiteid=110000000000000&pg=10&p=1&tpl=14&category=183&q=&begin={yesterday}&end={yesterday}"
@@ -140,6 +142,7 @@ def scrape_data():
                                         pass
                                 
                                 if pub_at != yesterday:
+                                    filtered_count += 1
                                     continue
                                 
                                 # 抓取内容
@@ -551,6 +554,7 @@ def scrape_data():
                                             pass
                                 
                                 if pub_at != yesterday:
+                                    filtered_count += 1
                                     continue
                                 
                                 # 抓取内容
@@ -619,7 +623,8 @@ def scrape_data():
             # print("\nSelenium not available, skipping Selenium approach")
             pass
         
-        # print(f"Found {len(policies)} items for target date")
+        print(f"Found {len(policies)} items for target date")
+        print(f"Skipped {filtered_count} items")
         
     except Exception as e:
         # print(f"Error: {e}")

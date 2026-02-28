@@ -30,6 +30,8 @@ def scrape_data():
         page_no = 1
         page_size = 10
         
+        filtered_count = 0
+        
         while True:
             data = {
                 "name": "",
@@ -82,6 +84,7 @@ def scrape_data():
                             pass
                     
                     if pub_at != yesterday:
+                        filtered_count += 1
                         continue
                     
                     # 获取文章内容
@@ -115,6 +118,7 @@ def scrape_data():
             page_no += 1
         
         print(f"Found {len(policies)} items for target date")
+        print(f"Skipped {filtered_count} items")
         
     except Exception as e:
         print(f"Error: {e}")

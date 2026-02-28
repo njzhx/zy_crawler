@@ -19,7 +19,6 @@ def scrape_data():
     例如：运行时是2026年2月18日，只抓取2026年2月17日的文章
     """
     policies = []
-    url = TARGET_URL
     
     try:
         # 计算前一天日期（使用北京时间 UTC+8）
@@ -35,62 +34,74 @@ def scrape_data():
         utc_now = datetime.utcnow()
         print(f"🌍 运行时间（UTC）：{utc_now.strftime('%Y-%m-%d %H:%M:%S')}")
         
+        # 直接调用API接口
+        print("\n🚀 直接调用API接口获取数据...")
+        api_url = "https://fwfx.ndrc.gov.cn/api/query"
+        
+        # 构建请求参数
+        params = {
+            'qt': '',  # 搜索关键词
+            'tab': 'all',  # 所有文件类型
+            'page': 1,  # 页码
+            'pageSize': 20,  # 每页数量
+            'siteCode': 'bm04000fgk',  # 站点代码
+            'key': 'CAB549A94CF659904A7D6B0E8FC8A7E9',  # 密钥
+            'startDateStr': yesterday.strftime('%Y-%m-%d'),  # 开始日期
+            'endDateStr': yesterday.strftime('%Y-%m-%d'),  # 结束日期
+            'timeOption': 2,  # 时间选项：2表示具体日期
+            'sort': 'dateDesc'  # 按日期降序排序
+        }
+        
         # 发送请求
-        response = requests.get(url, timeout=30)
+        response = requests.get(api_url, params=params, timeout=30)
         response.raise_for_status()
         
-        # 解析HTML
-        soup = BeautifulSoup(response.content, 'html.parser')
+        # 解析JSON响应
+        import json
+        data = response.json()
+        print(f"✅ API请求成功，状态：{data.get('ok', False)}")
         
-        # 查找文件列表（根据实际网页结构调整选择器）
-        # 注意：这里需要根据实际网页结构进行调整
-        policy_items = soup.select('.list > li')
-        
-        filtered_count = 0
-        
-        for item in policy_items:
-            # 提取标题和链接
-            title_elem = item.select_one('a')
-            if not title_elem:
-                continue
+        # 处理响应数据
+        if data.get('ok', False):
+            result_list = data.get('data', {}).get('resultList', [])
+            print(f"📋 找到 {len(result_list)} 条数据")
+            filtered_count = 0
             
-            title = title_elem.get_text(strip=True)
-            policy_url = title_elem.get('href')
-            
-            # 确保URL是完整的
-            if policy_url and not policy_url.startswith('http'):
-                policy_url = f"https://www.ndrc.gov.cn{policy_url}"
-            
-            # 提取发布日期
-            date_elem = item.select_one('.date')
-            pub_at = None
-            if date_elem:
-                date_str = date_elem.get_text(strip=True)
-                try:
-                    pub_at = datetime.strptime(date_str, '%Y-%m-%d').date()
-                except ValueError:
-                    pass
-            
-            # 过滤：只保留前一天的文章
-            if pub_at != yesterday:
-                filtered_count += 1
-                continue
-            
-            # 提取内容（这里只是示例，实际可能需要进入详情页抓取）
-            content = ""  # 可以后续实现详情页抓取
-            
-            # 构建政策数据
-            policy_data = {
-                'title': title,
-                'url': policy_url,
-                'pub_at': pub_at,
-                'content': content,
-                'selected': False,
-                'category': '发改委文件',
-                'source': '国家发展和改革委员会'
-            }
-            
-            policies.append(policy_data)
+            for item in result_list:
+                # 提取数据
+                title = item.get('title', '')
+                policy_url = item.get('url', '')
+                doc_date = item.get('docDate', '')
+                
+                # 解析日期
+                pub_at = None
+                if doc_date:
+                    try:
+                        pub_at = datetime.strptime(doc_date.split(' ')[0], '%Y-%m-%d').date()
+                    except ValueError:
+                        pass
+                
+                # 过滤：只保留目标日期的文章
+                if pub_at == yesterday:
+                    # 提取内容（这里只是示例，实际可能需要进入详情页抓取）
+                    content = ""  # 可以后续实现详情页抓取
+                    
+                    # 构建政策数据
+                    policy_data = {
+                        'title': title,
+                        'url': policy_url,
+                        'pub_at': pub_at,
+                        'content': content,
+                        'selected': False,
+                        'category': '',
+                        'source': '国家发展和改革委员会发改委文件'
+                    }
+                    
+                    policies.append(policy_data)
+                else:
+                    filtered_count += 1
+        else:
+            print(f"❌ API请求失败：{data.get('msg', '未知错误')}")
         
         print(f"✅ 国家发改委爬虫：成功抓取 {len(policies)} 条前一天数据")
         print(f"⏭️  过滤掉 {filtered_count} 条非目标日期的数据")
