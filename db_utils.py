@@ -130,11 +130,16 @@ class DBUtils:
             # 构造JSON结构（按照接口示例格式）
             items = []
             for item in data_list:
+                # 处理pub_at字段，确保是字符串格式
+                pub_at = item.get('pub_at', '')
+                if hasattr(pub_at, 'isoformat'):
+                    pub_at = pub_at.isoformat()
+                
                 item_data = {
                     "title": item.get('title', ''),
                     "url": item.get('url', ''),
                     "content": item.get('content', ''),
-                    "pub_at": item.get('pub_at', '')
+                    "pub_at": pub_at
                 }
                 items.append(item_data)
             
