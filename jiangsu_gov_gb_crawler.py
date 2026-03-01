@@ -13,14 +13,15 @@ TARGET_URL = "https://www.jiangsu.gov.cn/col/col81677/index.html"
 
 def scrape_data():
     policies = []
+    all_items = []
     url = TARGET_URL
     
     try:
         tz_utc8 = timezone(timedelta(hours=8))
         today = datetime.now(tz_utc8).date()
         yesterday = today - timedelta(days=1)
-        print(f"Date (Beijing): {today}")
-        print(f"Target date: {yesterday}")
+        
+
         
         response = requests.get(url, headers=headers, timeout=30)
         response.raise_for_status()
@@ -50,12 +51,17 @@ def scrape_data():
                 
                 pub_at = None
                 date_text = item.get_text()
-                date_match = re.search(r'(\d{4})[-/\.](\d{1,2})[-/\.](\d{1,2})', date_text)
+                # 匹配 MM-DD 格式的日期
+                date_match = re.search(r'(\d{1,2})[-/\.](\d{1,2})', date_text)
                 if date_match:
                     try:
-                        pub_at = datetime.strptime(f"{date_match.group(1)}-{date_match.group(2)}-{date_match.group(3)}", '%Y-%m-%d').date()
+                        # 使用当前年份（2026）与匹配到的月日组合
+                        pub_at = datetime(2026, int(date_match.group(1)), int(date_match.group(2))).date()
                     except ValueError:
                         pass
+                
+                # 保存到 all_items 用于显示最新5条
+                all_items.append({'title': title, 'pub_at': pub_at})
                 
                 if pub_at != yesterday:
                     filtered_count += 1
@@ -77,21 +83,29 @@ def scrape_data():
                     'pub_at': pub_at,
                     'content': content,
                     'selected': False,
-                    'category': '省政府公报',
-                    'source': '江苏省政府'
+                    'category': '',
+                    'source': '江苏省政府公报'
                 }
                 policies.append(policy_data)
                 
             except Exception:
                 continue
         
-        print(f"Found {len(policies)} items for target date")
-        print(f"Skipped {filtered_count} items")
+        print(f"✅ 江苏省政府公报爬虫：成功抓取 {len(policies)} 条前一天数据")
+        print(f"⏭️  过滤掉 {filtered_count} 条非目标日期的数据")
+        
+        # 显示页面最新5条
+        if all_items:
+            print("📊 页面最新5条是：")
+            for i, item in enumerate(all_items[:5], 1):
+                date_str = item['pub_at'].strftime('%Y-%m-%d') if item['pub_at'] else '未知日期'
+                print(f"✅ {item['title']} {date_str}")
         
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"❌ 江苏省政府公报爬虫：抓取失败 - {e}")
+        print("----------------------------------------")
     
-    return policies
+    return policies, all_items
 
 
 def save_to_supabase(data_list):
@@ -104,11 +118,14 @@ def save_to_supabase(data_list):
 
 def run():
     try:
-        data = scrape_data()
-        save_to_supabase(data)
-        return data
+        data, _ = scrape_data()
+        result = save_to_supabase(data)
+        print(f"💾 写入数据库: {len(data)} 条")
+        print("----------------------------------------")
+        return result
     except Exception as e:
-        print(f"Run failed: {e}")
+        print(f"❌ 江苏省政府公报爬虫：运行失败 - {e}")
+        print("----------------------------------------")
         return []
 
 

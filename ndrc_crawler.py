@@ -1,7 +1,23 @@
 import os
 import requests
+import re
+import time
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
+
+# 尝试导入 Selenium
+SELENIUM_AVAILABLE = False
+try:
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from webdriver_manager.chrome import ChromeDriverManager
+    from selenium.webdriver.chrome.service import Service
+    SELENIUM_AVAILABLE = True
+except ImportError:
+    print("Selenium 未安装，将尝试其他方法")
 
 # 导入数据库工具
 from db_utils import save_to_policy
@@ -17,8 +33,14 @@ def scrape_data():
     
     只抓取前一天发布的文章
     例如：运行时是2026年2月18日，只抓取2026年2月17日的文章
+    
+    Returns:
+        tuple: (policies, all_items)
+            - policies: 符合目标日期的数据列表
+            - all_items: 所有抓取到的项目（用于显示最新5条）
     """
     policies = []
+    all_items = []
     
     try:
         # 计算前一天日期（使用北京时间 UTC+8）
@@ -28,88 +50,107 @@ def scrape_data():
         # 获取北京时间
         today = datetime.now(tz_utc8).date()
         yesterday = today - timedelta(days=1)
-        print(f"📅 运行日期（北京时间）：{today}")
-        print(f"🎯 目标抓取日期：{yesterday}")
-        # 同时显示 UTC 时间，便于调试
-        utc_now = datetime.utcnow()
-        print(f"🌍 运行时间（UTC）：{utc_now.strftime('%Y-%m-%d %H:%M:%S')}")
         
-        # 直接调用API接口
-        print("\n🚀 直接调用API接口获取数据...")
+        # 直接调用 API 接口（从页面代码中提取的正确 API）
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        
         api_url = "https://fwfx.ndrc.gov.cn/api/query"
         
-        # 构建请求参数
+        # 构建正确的请求参数（从页面代码中提取）
         params = {
             'qt': '',  # 搜索关键词
             'tab': 'all',  # 所有文件类型
             'page': 1,  # 页码
-            'pageSize': 20,  # 每页数量
+            'pageSize': 50,  # 每页数量
             'siteCode': 'bm04000fgk',  # 站点代码
             'key': 'CAB549A94CF659904A7D6B0E8FC8A7E9',  # 密钥
-            'startDateStr': yesterday.strftime('%Y-%m-%d'),  # 开始日期
-            'endDateStr': yesterday.strftime('%Y-%m-%d'),  # 结束日期
-            'timeOption': 2,  # 时间选项：2表示具体日期
+            'startDateStr': '',  # 开始日期（空字符串表示不限制）
+            'endDateStr': '',  # 结束日期（空字符串表示不限制）
+            'timeOption': 0,  # 时间选项：0表示不限制
             'sort': 'dateDesc'  # 按日期降序排序
         }
         
-        # 发送请求
-        response = requests.get(api_url, params=params, timeout=30)
+        response = requests.get(api_url, headers=headers, params=params, timeout=30)
         response.raise_for_status()
         
-        # 解析JSON响应
+        # 解析 JSON
         import json
         data = response.json()
-        print(f"✅ API请求成功，状态：{data.get('ok', False)}")
         
-        # 处理响应数据
+        items = []
         if data.get('ok', False):
             result_list = data.get('data', {}).get('resultList', [])
-            print(f"📋 找到 {len(result_list)} 条数据")
-            filtered_count = 0
-            
             for item in result_list:
-                # 提取数据
-                title = item.get('title', '')
-                policy_url = item.get('url', '')
-                doc_date = item.get('docDate', '')
-                
-                # 解析日期
-                pub_at = None
-                if doc_date:
-                    try:
-                        pub_at = datetime.strptime(doc_date.split(' ')[0], '%Y-%m-%d').date()
-                    except ValueError:
-                        pass
-                
-                # 过滤：只保留目标日期的文章
-                if pub_at == yesterday:
-                    # 提取内容（这里只是示例，实际可能需要进入详情页抓取）
-                    content = ""  # 可以后续实现详情页抓取
+                if isinstance(item, dict):
+                    title = item.get('title', '')
+                    href = item.get('url', '')
+                    doc_date = item.get('docDate', '')
                     
-                    # 构建政策数据
-                    policy_data = {
-                        'title': title,
-                        'url': policy_url,
-                        'pub_at': pub_at,
-                        'content': content,
-                        'selected': False,
-                        'category': '',
-                        'source': '国家发展和改革委员会发改委文件'
-                    }
-                    
-                    policies.append(policy_data)
+                    if title and href and doc_date:
+                        # 提取日期部分
+                        date_str = doc_date.split(' ')[0]
+                        items.append((title, href, date_str))
+        
+        print(f"📋 找到 {len(items)} 条数据")
+        filtered_count = 0
+        
+        for title, href, date_str in items:
+            # 解析日期
+            pub_at = None
+            if date_str:
+                try:
+                    pub_at = datetime.strptime(date_str, '%Y-%m-%d').date()
+                except ValueError:
+                    pass
+            
+            # 构建完整URL
+            policy_url = href
+            if not policy_url.startswith('http'):
+                if policy_url.startswith('/'):
+                    policy_url = f"https://www.ndrc.gov.cn{policy_url}"
                 else:
-                    filtered_count += 1
-        else:
-            print(f"❌ API请求失败：{data.get('msg', '未知错误')}")
+                    policy_url = f"https://www.ndrc.gov.cn/xxgk/wjk/{policy_url}"
+            
+            # 保存到 all_items 用于显示最新5条
+            all_items.append({'title': title, 'pub_at': pub_at})
+            
+            # 过滤：只保留目标日期的文章
+            if pub_at == yesterday:
+                # 提取内容（这里只是示例，实际可能需要进入详情页抓取）
+                content = ""  # 可以后续实现详情页抓取
+                
+                # 构建政策数据
+                policy_data = {
+                    'title': title,
+                    'url': policy_url,
+                    'pub_at': pub_at,
+                    'content': content,
+                    'selected': False,
+                    'category': '',
+                    'source': '国家发展和改革委员会发改委文件'
+                }
+                
+                policies.append(policy_data)
+            else:
+                filtered_count += 1
         
         print(f"✅ 国家发改委爬虫：成功抓取 {len(policies)} 条前一天数据")
         print(f"⏭️  过滤掉 {filtered_count} 条非目标日期的数据")
         
+        # 显示页面最新5条
+        if all_items:
+            print("📊 页面最新5条是：")
+            for i, item in enumerate(all_items[:5], 1):
+                date_str = item['pub_at'].strftime('%Y-%m-%d') if item['pub_at'] else '未知日期'
+                print(f"✅ {item['title']} {date_str}")
+        
     except Exception as e:
         print(f"❌ 国家发改委爬虫：抓取失败 - {e}")
+        print("----------------------------------------")
     
-    return policies
+    return policies, all_items
 
 # ==========================================
 # 3. 数据入库逻辑
@@ -127,11 +168,14 @@ def save_to_supabase(data_list):
 def run():
     """运行国家发改委爬虫"""
     try:
-        data = scrape_data()
+        data, _ = scrape_data()
         result = save_to_supabase(data)
+        print(f"💾 写入数据库: {len(data)} 条")
+        print("----------------------------------------")
         return result
     except Exception as e:
         print(f"❌ 国家发改委爬虫：运行过程中发生未捕获的异常 - {e}")
+        print("----------------------------------------")
         return []
 
 if __name__ == "__main__":

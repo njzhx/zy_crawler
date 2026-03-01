@@ -99,8 +99,8 @@ def scrape_data_test():
                     'pub_at': pub_at,
                     'content': content,
                     'selected': False,
-                    'category': '政务公开',
-                    'source': '国家数据局'
+                    'category': '',
+                    'source': '国家数据局政务公开'
                 }
                 
                 policies.append(policy_data)
@@ -119,9 +119,16 @@ def scrape_data_test():
 
 
 def scrape_data():
-    """正式版本：抓取数据，只抓取前一天发布的文章"""
+    """正式版本：抓取数据，只抓取前一天发布的文章
+    
+    Returns:
+        tuple: (policies, all_items)
+            - policies: 符合目标日期的数据列表
+            - all_items: 所有抓取到的项目（用于显示最新5条）
+    """
     policies = []
     url = TARGET_URL
+    all_items = []
     
     try:
         # 计算前一天日期（使用北京时间 UTC+8）
@@ -129,8 +136,8 @@ def scrape_data():
         tz_utc8 = timezone(timedelta(hours=8))
         today = datetime.now(tz_utc8).date()
         yesterday = today - timedelta(days=1)
-        print(f"📅 运行日期（北京时间）：{today}")
-        print(f"🎯 目标抓取日期：{yesterday}")
+        
+
         
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -177,6 +184,9 @@ def scrape_data():
                         except ValueError:
                             pass
                 
+                # 保存到 all_items 用于显示最新5条
+                all_items.append({'title': title, 'pub_at': pub_at})
+                
                 # 过滤：只保留前一天的文章
                 if pub_at != yesterday:
                     filtered_count += 1
@@ -200,8 +210,8 @@ def scrape_data():
                     'pub_at': pub_at,
                     'content': content,
                     'selected': False,
-                    'category': '政务公开',
-                    'source': '国家数据局'
+                    'category': '',
+                    'source': '国家数据局政务公开'
                 }
                 
                 policies.append(policy_data)
@@ -209,13 +219,21 @@ def scrape_data():
             except Exception:
                 continue
         
-        print(f"✅ 成功抓取 {len(policies)} 条前一天数据")
+        print(f"✅ 国家数据局爬虫：成功抓取 {len(policies)} 条前一天数据")
         print(f"⏭️  过滤掉 {filtered_count} 条非目标日期的数据")
         
+        # 显示页面最新5条
+        if all_items:
+                print("📊 页面最新5条是：")
+                for i, item in enumerate(all_items[:5], 1):
+                    date_str = item['pub_at'].strftime('%Y-%m-%d') if item['pub_at'] else '未知日期'
+                    print(f"✅ {item['title']} {date_str}")
+        
     except Exception as e:
-        print(f"❌ 爬虫失败 - {e}")
+        print(f"❌ 国家数据局爬虫：抓取失败 - {e}")
+        print("----------------------------------------")
     
-    return policies
+    return policies, all_items
 
 
 def save_to_supabase(data_list):
@@ -225,11 +243,14 @@ def save_to_supabase(data_list):
 def run():
     """运行爬虫"""
     try:
-        data = scrape_data()
+        data, _ = scrape_data()
         result = save_to_supabase(data)
+        print(f"💾 写入数据库: {len(data)} 条")
+        print("----------------------------------------")
         return result
     except Exception as e:
-        print(f"❌ 爬虫运行失败 - {e}")
+        print(f"❌ 国家数据局爬虫：运行过程中发生未捕获的异常 - {e}")
+        print("----------------------------------------")
         return []
 
 

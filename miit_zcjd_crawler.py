@@ -9,22 +9,30 @@ headers = {
 }
 
 TARGET_URL = "https://wap.miit.gov.cn/zwgk/zcjd/index.html"
+API_URL = "https://wap.miit.gov.cn/api-gateway/jpaas-publish-server/front/page/build/unit"
+API_PARAMS = {
+    'parseType': 'buildstatic',
+    'webId': '8d828e408d90447786ddbe128d495e9e',
+    'tplSetId': '209741b2109044b5b7695700b2bec37e',
+    'pageType': 'column',
+    'tagId': '右侧内容',
+    'editType': 'null',
+    'pageId': '1b56e5adc362428299dfc3eb444fe23a'
+}
 
 
 def scrape_data():
     policies = []
-    url = TARGET_URL
+    all_items = []
     
     try:
         tz_utc8 = timezone(timedelta(hours=8))
         today = datetime.now(tz_utc8).date()
         yesterday = today - timedelta(days=1)
-        print(f"Date (Beijing): {today}")
-        print(f"Target date: {yesterday}")
         
-        print("Note: This site may have WAF protection, need special handling")
+
         
-        response = requests.get(url, headers=headers, timeout=30)
+        response = requests.get(API_URL, headers=headers, params=API_PARAMS, timeout=30)
         response.raise_for_status()
         soup = BeautifulSoup(response.content, 'html.parser')
         
@@ -38,7 +46,9 @@ def scrape_data():
                     continue
                 
                 title = a_tag.get('title', '').strip() or a_tag.get_text(strip=True)
-                href = a_tag.get('href', '')
+                title = title.strip('"\'\\')
+                href = a_tag.get('href', '').strip('"\'\\')
+                href = href.replace('\\', '').replace('"', '').replace("'", '')
                 
                 if not title or len(title) < 5:
                     continue
@@ -59,6 +69,9 @@ def scrape_data():
                     except ValueError:
                         pass
                 
+                # 保存到 all_items 用于显示最新5条
+                all_items.append({'title': title, 'pub_at': pub_at})
+                
                 if pub_at != yesterday:
                     filtered_count += 1
                     continue
@@ -67,7 +80,7 @@ def scrape_data():
                 try:
                     detail_resp = requests.get(article_url, headers=headers, timeout=15)
                     detail_soup = BeautifulSoup(detail_resp.content, 'html.parser')
-                    content_elem = detail_soup.select_one('.content') or detail_soup.select_one('#content')
+                    content_elem = detail_soup.find('div', class_='ccontent') or detail_soup.find('div', class_='content') or detail_soup.find('div', id='content')
                     if content_elem:
                         content = content_elem.get_text(strip=True)
                 except Exception:
@@ -79,21 +92,29 @@ def scrape_data():
                     'pub_at': pub_at,
                     'content': content,
                     'selected': False,
-                    'category': '政策解读',
-                    'source': '工信部'
+                    'category': '',
+                    'source': '工信部政策解读'
                 }
                 policies.append(policy_data)
                 
             except Exception:
                 continue
         
-        print(f"Found {len(policies)} items for target date")
-        print(f"Skipped {filtered_count} items")
+        print(f"✅ 工信部政策解读爬虫：成功抓取 {len(policies)} 条前一天数据")
+        print(f"⏭️  过滤掉 {filtered_count} 条非目标日期的数据")
+        
+        # 显示页面最新5条
+        if all_items:
+            print("📊 页面最新5条是：")
+            for i, item in enumerate(all_items[:5], 1):
+                date_str = item['pub_at'].strftime('%Y-%m-%d') if item['pub_at'] else '未知日期'
+                print(f"✅ {item['title']} {date_str}")
         
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"❌ 工信部政策解读爬虫：抓取失败 - {e}")
+        print("----------------------------------------")
     
-    return policies
+    return policies, all_items
 
 
 def save_to_supabase(data_list):
@@ -106,11 +127,14 @@ def save_to_supabase(data_list):
 
 def run():
     try:
-        data = scrape_data()
-        save_to_supabase(data)
-        return data
+        data, _ = scrape_data()
+        result = save_to_supabase(data)
+        print(f"💾 写入数据库: {len(data)} 条")
+        print("----------------------------------------")
+        return result
     except Exception as e:
-        print(f"Run failed: {e}")
+        print(f"❌ 工信部政策解读爬虫：运行失败 - {e}")
+        print("----------------------------------------")
         return []
 
 
