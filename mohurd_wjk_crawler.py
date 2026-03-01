@@ -3,7 +3,8 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta, timezone
 import re
-import time
+import dns.resolver
+from urllib.parse import urlparse
 
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -21,22 +22,34 @@ API_PARAMS = {
     'pageId': 'vhiC3JxmPC8o7Lqg4Jw0E'
 }
 
-# 增加重试机制
-def get_with_retry(url, headers, params=None, max_retries=5, timeout=30):
-    retries = 0
-    while retries < max_retries:
-        try:
-            response = requests.get(url, headers=headers, params=params, timeout=timeout)
-            response.raise_for_status()
-            return response
-        except requests.exceptions.RequestException as e:
-            retries += 1
-            if retries >= max_retries:
-                raise
-            print(f"请求失败 ({type(e).__name__})，{retries}秒后重试...")
-            print(f"错误详情: {str(e)}")
-            time.sleep(retries * 2)  # 增加等待时间
+DNS_SERVERS = ["223.5.5.5", "114.114.114.114"]
 
+
+def resolve_domain(domain):
+    resolver = dns.resolver.Resolver()
+    resolver.nameservers = DNS_SERVERS
+    answer = resolver.resolve(domain, 'A')
+    return answer[0].to_text()
+
+
+def get_with_custom_dns(url, headers=None, params=None, timeout=30):
+    parsed = urlparse(url)
+    domain = parsed.hostname
+
+    ip = resolve_domain(domain)
+
+    new_url = url.replace(domain, ip)
+
+    req_headers = headers.copy() if headers else {}
+    req_headers["Host"] = domain
+
+    return requests.get(
+        new_url,
+        headers=req_headers,
+        params=params,
+        timeout=timeout,
+        verify=True
+    )
 
 def scrape_data():
     policies = []
@@ -47,9 +60,15 @@ def scrape_data():
         today = datetime.now(tz_utc8).date()
         yesterday = today - timedelta(days=1)
         
-        print(f"🎯 目标抓取日期：{yesterday}")
 
-        response = get_with_retry(API_URL, headers=headers, params=API_PARAMS, max_retries=3, timeout=30)
+        
+        response = get_with_custom_dns(
+            API_URL,
+            headers=headers,
+            params=API_PARAMS,
+            timeout=30
+        )
+        response.raise_for_status()
         soup = BeautifulSoup(response.content, 'html.parser')
         
         items = soup.find_all('tr')
@@ -94,7 +113,11 @@ def scrape_data():
                 
                 content = ""
                 try:
-                    detail_resp = get_with_retry(article_url, headers=headers, max_retries=3, timeout=15)
+                    detail_resp = get_with_custom_dns(
+                        article_url,
+                        headers=headers,
+                        timeout=15
+                    )
                     detail_soup = BeautifulSoup(detail_resp.content, 'html.parser')
                     content_elem = detail_soup.find('div', class_='editor-content') or detail_soup.find('div', class_='ccontent') or detail_soup.find('div', class_='content') or detail_soup.find('div', id='content')
                     if content_elem:
@@ -143,9 +166,6 @@ def save_to_supabase(data_list):
 
 def run():
     try:
-        print("📦 开始执行爬虫: 住建部文件库")
-        print(f"🔗 目标网址: `{TARGET_URL}`")
-        print("----------------------------------------")
         data, _ = scrape_data()
         result = save_to_supabase(data)
         print(f"💾 写入数据库: {len(data)} 条")
