@@ -127,45 +127,29 @@ class DBUtils:
         target_url = "http://seoularmv4.09282018.xyz:5000/api/receive-data"
         
         try:
-            tz_utc8 = timezone(timedelta(hours=8))
-            timestamp = datetime.now(tz_utc8).isoformat()
-            
-            # 构造JSON结构
+            # 构造JSON结构（按照接口示例格式）
             items = []
             for item in data_list:
-                # 生成唯一ID
-                url_hash = hashlib.md5(item.get('url', '').encode()).hexdigest()
-                
                 item_data = {
-                    "id": url_hash,
                     "title": item.get('title', ''),
                     "url": item.get('url', ''),
-                    "pub_at": item.get('pub_at', ''),
                     "content": item.get('content', ''),
-                    "category": item.get('category', ''),
-                    "selected": item.get('selected', False),
-                    "crawled_at": timestamp
+                    "pub_at": item.get('pub_at', '')
                 }
                 items.append(item_data)
             
             # 构建完整的JSON结构
             payload = {
-                "meta": {
-                    "timestamp": timestamp,
-                    "total_items": len(items),
-                    "source_count": 1
-                },
                 "sources": [
                     {
                         "name": source_name,
-                        "crawler_name": source_name,
                         "items": items
                     }
                 ]
             }
             
             # 发送POST请求
-            headers = {"Content-Type": "application/json; charset=utf-8"}
+            headers = {"Content-Type": "application/json"}
             response = requests.post(
                 target_url,
                 data=json.dumps(payload, ensure_ascii=False),
