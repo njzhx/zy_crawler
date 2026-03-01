@@ -23,7 +23,6 @@ jobs:
       
       - name: DNS Test
         run: |
-          nslookup www.mohurd.gov.cn 8.8.8.8
           nslookup www.mohurd.gov.cn 1.1.1.1
               
       - name: 安装系统依赖（Chrome）
