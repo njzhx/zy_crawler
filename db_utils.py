@@ -149,10 +149,10 @@ class DBUtils:
             }
             
             # 发送POST请求
-            headers = {"Content-Type": "application/json"}
+            headers = {"Content-Type": "application/json; charset=utf-8"}
             response = requests.post(
                 target_url,
-                data=json.dumps(payload, ensure_ascii=False),
+                data=json.dumps(payload, ensure_ascii=False).encode('utf-8'),
                 headers=headers,
                 timeout=10
             )
