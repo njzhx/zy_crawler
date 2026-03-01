@@ -204,8 +204,8 @@ if __name__ == "__main__":
         manager.register_crawler("国家发改委", ndrc_crawler.run, ndrc_crawler)
         
         # 导入人民网财经爬虫
-        import people_finance_crawler
-        manager.register_crawler("人民网财经", people_finance_crawler.run, people_finance_crawler)
+        # import people_finance_crawler
+        # manager.register_crawler("人民网财经", people_finance_crawler.run, people_finance_crawler)
         
         # 注册 mubiao.md 中的16个新爬虫
         try:
