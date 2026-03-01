@@ -1,6 +1,9 @@
 import os
+import json
+import requests
 from supabase import create_client, Client
-from datetime import date
+from datetime import date, datetime, timezone, timedelta
+import hashlib
 
 # ==========================================
 # 数据库工具模块
@@ -96,11 +99,91 @@ class DBUtils:
                     continue
             
             print(f"✅ {source_name}：成功写入 {success_count} 条数据到 Supabase")
+            
+            # 推送数据到API接口
+            if success_count > 0:
+                self.push_to_api(data_list[:success_count], source_name)
+            
             return data_list[:success_count]
             
         except Exception as e:
             print(f"❌ {source_name}：数据库写入失败 - {e}")
             return []
+
+    def push_to_api(self, data_list, source_name):
+        """将数据推送到目标API接口
+        
+        Args:
+            data_list: 数据列表
+            source_name: 数据源名称
+            
+        Returns:
+            bool: 是否成功推送
+        """
+        if not data_list:
+            print(f"⚠️  {source_name}：没有数据需要推送，跳过。")
+            return False
+        
+        target_url = "http://seoularmv4.09282018.xyz:5000/api/receive-data"
+        
+        try:
+            tz_utc8 = timezone(timedelta(hours=8))
+            timestamp = datetime.now(tz_utc8).isoformat()
+            
+            # 构造JSON结构
+            items = []
+            for item in data_list:
+                # 生成唯一ID
+                url_hash = hashlib.md5(item.get('url', '').encode()).hexdigest()
+                
+                item_data = {
+                    "id": url_hash,
+                    "title": item.get('title', ''),
+                    "url": item.get('url', ''),
+                    "pub_at": item.get('pub_at', ''),
+                    "content": item.get('content', ''),
+                    "category": item.get('category', ''),
+                    "selected": item.get('selected', False),
+                    "crawled_at": timestamp
+                }
+                items.append(item_data)
+            
+            # 构建完整的JSON结构
+            payload = {
+                "meta": {
+                    "timestamp": timestamp,
+                    "total_items": len(items),
+                    "source_count": 1
+                },
+                "sources": [
+                    {
+                        "name": source_name,
+                        "crawler_name": source_name,
+                        "items": items
+                    }
+                ]
+            }
+            
+            # 发送POST请求
+            headers = {"Content-Type": "application/json; charset=utf-8"}
+            response = requests.post(
+                target_url,
+                data=json.dumps(payload, ensure_ascii=False),
+                headers=headers,
+                timeout=10
+            )
+            
+            # 检查响应状态
+            response.raise_for_status()
+            print(f"✅ {source_name}：成功推送 {len(items)} 条数据到API")
+            return True
+            
+        except requests.exceptions.RequestException as e:
+            print(f"❌ {source_name}：API推送失败 - {e}")
+            return False
+        except Exception as e:
+            print(f"❌ {source_name}：推送过程中发生未知错误 - {e}")
+            return False
 
 # 创建全局实例
 db_utils = DBUtils()
@@ -117,3 +200,16 @@ def save_to_policy(data_list, source_name):
         list: 成功写入的数据列表
     """
     return db_utils.save_to_policy(data_list, source_name)
+
+# 便捷函数
+def push_to_api(data_list, source_name):
+    """便捷函数：将数据推送到API接口
+    
+    Args:
+        data_list: 数据列表
+        source_name: 数据源名称
+        
+    Returns:
+        bool: 是否成功推送
+    """
+    return db_utils.push_to_api(data_list, source_name)
