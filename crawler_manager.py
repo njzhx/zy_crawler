@@ -361,6 +361,12 @@ if __name__ == "__main__":
         except ImportError as e:
             print(f"⚠️  导入财政厅_公告爬虫失败: {e}")
         
+        try:
+            import jiangsu_sjj_gg_crawler
+            manager.register_crawler("省数据局_通知公告", jiangsu_sjj_gg_crawler.run, jiangsu_sjj_gg_crawler)
+        except ImportError as e:
+            print(f"⚠️  导入省数据局_通知公告爬虫失败: {e}")
+        
     except ImportError as e:
         print(f"⚠️  导入爬虫模块失败: {e}")
     
