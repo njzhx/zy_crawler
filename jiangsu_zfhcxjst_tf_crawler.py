@@ -128,12 +128,57 @@ def scrape_data(target_date=None):
             try:
                 detail_response = requests.get(policy_url, headers=headers, timeout=15)
                 detail_response.raise_for_status()
+                
+                # 解析HTML
                 detail_soup = BeautifulSoup(detail_response.content, 'html.parser')
                 
-                # 尝试多种内容选择器
-                content_elem = detail_soup.select_one('#zoom') or detail_soup.select_one('.content') or detail_soup.select_one('.article-content')
+                # 使用lxml查找正文
+                import lxml.html
+                tree = lxml.html.fromstring(detail_response.content)
+                
+                # 尝试查找真正的正文容器
+                found = False
+                
+                # 1. 尝试用户提供的XPath
+                content_elem = tree.xpath('//div[@aria-label="正文区"]')
                 if content_elem:
-                    content = content_elem.get_text(strip=True)
+                    content = content_elem[0].text_content().strip()
+                    found = True
+                
+                # 2. 尝试查找#zoom元素之后的div
+                if not found:
+                    zoom_elem = tree.xpath('//div[@id="zoom"]')
+                    if zoom_elem:
+                        # 查找#zoom的后续兄弟元素
+                        following_divs = zoom_elem[0].xpath('./following-sibling::div')
+                        for div in following_divs:
+                            div_content = div.text_content().strip()
+                            if len(div_content) > 100:  # 内容长度超过100字符，可能是正文
+                                content = div_content
+                                found = True
+                                break
+                
+                # 3. 尝试其他常见的正文容器
+                if not found:
+                    common_selectors = [
+                        '//div[@class="main-fl-con"]',
+                        '//div[@class="article-content"]',
+                        '//div[@class="content"]',
+                        '//div[@id="content"]'
+                    ]
+                    for selector in common_selectors:
+                        content_elem = tree.xpath(selector)
+                        if content_elem:
+                            content = content_elem[0].text_content().strip()
+                            if len(content) > 100:
+                                found = True
+                                break
+                
+                # 4. 尝试使用BeautifulSoup选择器
+                if not found:
+                    content_elem = detail_soup.select_one('#zoom') or detail_soup.select_one('.content') or detail_soup.select_one('.article-content')
+                    if content_elem:
+                        content = content_elem.get_text(strip=True)
             except Exception:
                 pass
             
