@@ -202,6 +202,38 @@ class FeishuNotifier:
         # 底部分隔线
         content.append([{"tag": "text", "text": "==================="}])
         
+        # 添加API推送结果
+        api_success_count = 0
+        api_error_count = 0
+        api_results_added = False
+        
+        for name, result in results.items():
+            if result.get('status') == 'success' and 'api_push_result' in result:
+                api_result = result.get('api_push_result')
+                if api_result:
+                    api_results_added = True
+                    status = api_result.get('status', 'unknown')
+                    message = api_result.get('message', '')
+                    if status == 'success':
+                        content.append([
+                            {"tag": "text", "text": f"✅ {name}：{message}"}
+                        ])
+                        api_success_count += 1
+                    elif status == 'error':
+                        content.append([
+                            {"tag": "text", "text": f"❌ {name}：{message}"}
+                        ])
+                        api_error_count += 1
+                    else:
+                        content.append([
+                            {"tag": "text", "text": f"⚠️ {name}：{message}"}
+                        ])
+        
+        if api_results_added:
+            content.append([
+                {"tag": "text", "text": f"📊 API推送统计: 成功 {api_success_count} 个, 失败 {api_error_count} 个"}
+            ])
+        
         # 发送富文本消息
         return self.send_rich_text("爬虫执行结果", content)
     

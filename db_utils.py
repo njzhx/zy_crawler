@@ -63,11 +63,11 @@ class DBUtils:
             source_name: 数据源名称
             
         Returns:
-            list: 成功写入的数据列表
+            tuple: (成功写入的数据列表, API推送结果)
         """
         if not data_list:
             print(f"⚠️  {source_name}：没有数据需要写入，跳过。")
-            return []
+            return [], None
         
         try:
             # 处理数据
@@ -110,7 +110,7 @@ class DBUtils:
             
         except Exception as e:
             print(f"❌ {source_name}：数据库写入失败 - {e}")
-            return []
+            return [], None
 
     def push_to_api(self, data_list, source_name):
         """将数据推送到目标API接口
