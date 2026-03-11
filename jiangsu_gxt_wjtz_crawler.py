@@ -84,10 +84,13 @@ def scrape_data():
                 try:
                     detail_resp = requests.get(article_url, headers=headers, timeout=15)
                     detail_soup = BeautifulSoup(detail_resp.content, 'html.parser')
-                    content_elem = detail_soup.select_one('.content') or detail_soup.select_one('#content')
+                    content_elem = detail_soup.select_one('.nscont') or detail_soup.select_one('.con912') or detail_soup.select_one('.article_zoom') or detail_soup.select_one('.newscon')
                     if content_elem:
                         content = content_elem.get_text(strip=True)
-                except Exception:
+                        if len(content) > 0:
+                            print(f"   📄 成功抓取到内容: 前80字符 = {content[:80]}...")
+                except Exception as e:
+                    print(f"   ⚠️  抓取内容时出错: {e}")
                     pass
                 
                 policy_data = {
