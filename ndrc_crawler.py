@@ -118,8 +118,31 @@ def scrape_data():
             
             # 过滤：只保留目标日期的文章
             if pub_at == yesterday:
-                # 提取内容（这里只是示例，实际可能需要进入详情页抓取）
-                content = ""  # 可以后续实现详情页抓取
+                # 抓取详情页内容
+                content = ""
+                try:
+                    detail_resp = requests.get(policy_url, headers=headers, timeout=15)
+                    detail_resp.raise_for_status()
+                    detail_soup = BeautifulSoup(detail_resp.content, 'html.parser')
+                    
+                    # 使用XPath查找内容区域
+                    # 注意：BeautifulSoup不直接支持XPath，我们使用CSS选择器来模拟
+                    # XPath: //div[@class="article_con article_con_title"]
+                    content_div = detail_soup.select_one('.article_con.article_con_title')
+                    
+                    # 如果找不到特定的内容区域，尝试查找包含大量文本的div
+                    if not content_div:
+                        divs = detail_soup.find_all('div')
+                        for div in divs:
+                            text = div.get_text(strip=True)
+                            if text and len(text) > 500:
+                                content_div = div
+                                break
+                    
+                    if content_div:
+                        content = content_div.get_text(strip=True)
+                except Exception as e:
+                    print(f"⚠️  抓取详情页失败：{e}")
                 
                 # 构建政策数据
                 policy_data = {

@@ -84,7 +84,25 @@ def scrape_data():
                 try:
                     detail_resp = requests.get(article_url, headers=headers, timeout=15)
                     detail_soup = BeautifulSoup(detail_resp.content, 'html.parser')
-                    content_elem = detail_soup.select_one('.content') or detail_soup.select_one('#content')
+                    
+                    # 使用XPath查找内容区域
+                    # 注意：BeautifulSoup不直接支持XPath，我们使用CSS选择器来模拟
+                    # XPath: //*[@id="zoom"]
+                    content_elem = detail_soup.select_one('#zoom')
+                    
+                    # 如果找不到特定的内容区域，尝试其他选择器
+                    if not content_elem:
+                        content_elem = detail_soup.select_one('.content') or detail_soup.select_one('#content')
+                    
+                    # 如果还是找不到，尝试查找包含大量文本的div
+                    if not content_elem:
+                        divs = detail_soup.find_all('div')
+                        for div in divs:
+                            text = div.get_text(strip=True)
+                            if text and len(text) > 500:
+                                content_elem = div
+                                break
+                    
                     if content_elem:
                         content = content_elem.get_text(strip=True)
                 except Exception:
