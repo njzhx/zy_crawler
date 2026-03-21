@@ -160,12 +160,19 @@ def get_article_content(url):
         
         soup = BeautifulSoup(response.content, 'html.parser')
         
-        # 尝试使用指定的XPath选择器
-        content_elem = soup.select_one('div[aria-label="正文区"]')
+        # 优先从指定的div容器中提取内容
+        content_elem = soup.select_one('div[ergodic="article"].art-con.art-con-bottonmLine[aria-region="true"][aria-autolabel="true"][aria-label="正文区"]')
+        
+        # 尝试找到所有.art-con.art-con-bottonmLine容器并选择内容最长的那个
+        if not content_elem:
+            art_con_containers = soup.select('.art-con.art-con-bottonmLine')
+            if art_con_containers:
+                # 选择内容最长的容器
+                content_elem = max(art_con_containers, key=lambda x: len(x.get_text(strip=True)))
         
         # 尝试常见的内容选择器
         selectors = [
-            '.art-con.art-con-bottonmLine',
+            '.article-content',
             '.art-con',
             '.content',
             '.TRS_Editor',
@@ -238,7 +245,7 @@ def scrape_data():
                     'content': content,
                     'selected': False,
                     'category': '',
-                    'source': '商务部'
+                    'source': '商务部规划计划'
                 }
                 policies.append(policy_data)
                 
