@@ -116,7 +116,23 @@ def scrape_data(target_date=None):
                 detail_response.raise_for_status()
                 
                 detail_soup = BeautifulSoup(detail_response.content, 'html.parser')
-                content_elem = detail_soup.select_one('#zoom') or detail_soup.select_one('.main-fl-con') or detail_soup.select_one('.box_wzy_ys')
+                
+                # 优先使用 .box_wzy_ys 类查找内容区域
+                content_elem = detail_soup.select_one('.box_wzy_ys')
+                
+                # 如果找不到，尝试其他选择器
+                if not content_elem:
+                    content_elem = detail_soup.select_one('#zoom') or detail_soup.select_one('.main-fl-con')
+                
+                # 如果还是找不到，尝试查找包含大量文本的div
+                if not content_elem:
+                    divs = detail_soup.find_all('div')
+                    for div in divs:
+                        text = div.get_text(strip=True)
+                        if text and len(text) > 500:
+                            content_elem = div
+                            break
+                
                 if content_elem:
                     content = content_elem.get_text(strip=True)
                     if len(content) > 0:
