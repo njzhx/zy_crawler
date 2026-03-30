@@ -21,8 +21,6 @@ def scrape_data():
         tz_utc8 = timezone(timedelta(hours=8))
         today = datetime.now(tz_utc8).date()
         yesterday = today - timedelta(days=1)
-        print(f"📅 运行日期（北京时间）：{today}")
-        print(f"🎯 目标抓取日期：{yesterday}")
         
         # 发送请求
         headers = {
@@ -61,7 +59,8 @@ def scrape_data():
         records = re.findall(r'<record><!\[CDATA\[(.*?)\]\]></record>', recordset_content, re.DOTALL)
         all_items = len(records)
         
-        print(f"📋 找到 {all_items} 条数据")
+        print(f"📋 找到 {all_items} 篇文章")
+        print(f"📅 有日期的文章: {all_items} 篇")
         
         target_date_items = 0
         non_target_date_items = 0
@@ -124,14 +123,23 @@ def scrape_data():
             else:
                 non_target_date_items += 1
         
-        print(f"✅ 目标日期条目：{target_date_items} 条")
-        print(f"⏭️  非目标日期条目：{non_target_date_items} 条")
+        print(f"✅ 江苏省农业农村厅通知公告爬虫：成功抓取 {target_date_items} 条前一天数据")
+        print(f"⏭️  过滤掉 {non_target_date_items} 条非目标日期的数据")
         
-        if policies:
-            print(f"✅ 成功抓取 {len(policies)} 条目标日期的文章")
-            print("📊 页面最新5条是：")
-            for i, policy in enumerate(policies[:5]):
-                print(f"✅ {policy['title']} [{policy['pub_at']}]")
+        # 收集所有文章信息用于显示最新5条
+        all_articles = []
+        for record in records:
+            title_match = re.search(r'title=(["\'])(.*?)\1', record)
+            url_match = re.search(r'href=(["\'])(.*?)\1', record)
+            date_match = re.search(r'\[(\d{4}-\d{2}-\d{2})\]', record)
+            if all([title_match, url_match, date_match]):
+                title = title_match.group(2)
+                date_str = date_match.group(1)
+                all_articles.append((title, date_str))
+        
+        print("📊 页面最新5条是：")
+        for i, (title, date_str) in enumerate(all_articles[:5]):
+            print(f"✅ {title} {date_str}")
         
     except Exception as e:
         print(f"❌ 爬虫：抓取失败 - {e}")
@@ -182,10 +190,6 @@ def save_to_supabase(data_list):
 def run():
     """运行爬虫"""
     try:
-        print("🔍 开始执行爬虫: 江苏省农业农村厅通知公告")
-        print("----------------------------------------")
-        print(f"🔗 目标网址: {TARGET_URL}")
-        print("----------------------------------------")
         data, all_items = scrape_data()
         if data:
             result = save_to_supabase(data)
