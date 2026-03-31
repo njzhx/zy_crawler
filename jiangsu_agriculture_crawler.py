@@ -150,38 +150,11 @@ def scrape_data():
 # 2. 数据入库逻辑
 # ==========================================
 def save_to_supabase(data_list):
-    if not data_list:
-        print("⚠️ 没有抓取到任何数据，跳过写入。")
-        return []
-
+    """保存数据到Supabase，使用db_utils统一处理"""
     try:
-        from supabase import create_client, Client
-        SUPABASE_URL = os.environ.get("SUPABASE_PROJECT_API")
-        SUPABASE_KEY = os.environ.get("SUPABASE_ANON_PUBLIC")
-        
-        if not SUPABASE_URL or not SUPABASE_KEY:
-            raise ValueError("缺少 Supabase 环境变量")
-        
-        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-        
-        # 处理日期对象
-        processed_data = []
-        for item in data_list:
-            processed_item = item.copy()
-            if hasattr(processed_item.get('pub_at'), 'isoformat'):
-                processed_item['pub_at'] = processed_item['pub_at'].isoformat()
-            processed_data.append(processed_item)
-        
-        # 使用upsert插入数据
-        response = supabase.table("policy").upsert(
-            processed_data, 
-            on_conflict="title"
-        ).execute()
-        
-        print(f"✅ 江苏省农业农村厅_通知公告：成功推送 {len(processed_data)} 条数据到API")
-        return data_list
-    except Exception as e:
-        print(f"❌ 江苏省农业农村厅_通知公告：API推送失败 - {e}")
+        from db_utils import save_to_policy
+        return save_to_policy(data_list, "江苏省农业农村厅_通知公告")
+    except Exception:
         return data_list
 
 # ==========================================
@@ -192,23 +165,24 @@ def run():
     try:
         data, all_items = scrape_data()
         if data:
-            result = save_to_supabase(data)
-            print(f"� 写入数据库: {len(data)} 条")
+            result, api_push_result = save_to_supabase(data)
+            print(f"💾 写入数据库: {len(result)} 条")
             print("----------------------------------------")
             
             # 测试内容抓取
-            if data:
-                print("� 测试内容抓取：")
-                print(f"标题: {data[0]['title']}")
-                print(f"链接: {data[0]['url']}")
-                print(f"内容长度: {len(data[0]['content'])} 字符")
-                print(f"内容预览: {data[0]['content'][:500]}...")
+            if result:
+                print("📄 测试内容抓取：")
+                print(f"标题: {result[0]['title']}")
+                print(f"链接: {result[0]['url']}")
+                print(f"内容长度: {len(result[0]['content'])} 字符")
+                print(f"内容预览: {result[0]['content'][:500]}...")
             print("✅ 爬虫 江苏省农业农村厅通知公告 执行成功")
+            return result
         else:
             print("💾 写入数据库: 0 条")
             print("----------------------------------------")
             print("⚠️  未找到目标日期的文章")
-        return data
+            return data
     except Exception as e:
         print(f"❌ 爬虫 江苏省农业农村厅通知公告 运行失败 - {e}")
         print("----------------------------------------")
