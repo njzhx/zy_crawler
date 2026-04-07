@@ -508,7 +508,7 @@ if __name__ == "__main__":
     # 导入江苏省科学技术厅科技动态爬虫
     try:
         import jiangsu_kxjst_kjdt_crawler
-        manager.register_crawler("江苏省科学技术厅_重点新闻", jiangsu_kxjst_kjdt_crawler.run, jiangsu_kxjst_kjdt_crawler)
+        manager.register_crawler("江苏省科学技术厅_科技动态", jiangsu_kxjst_kjdt_crawler.run, jiangsu_kxjst_kjdt_crawler)
     except ImportError as e:
         print(f"⚠️  导入江苏省科学技术厅_科技动态爬虫失败: {e}")
     
