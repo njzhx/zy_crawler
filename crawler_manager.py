@@ -539,6 +539,13 @@ if __name__ == "__main__":
         manager.register_crawler("江苏省交通运输厅_政策文件", jiangsu_jtyst_zcwj_crawler.run, jiangsu_jtyst_zcwj_crawler)
     except ImportError as e:
         print(f"⚠️  导入江苏省交通运输厅_政策文件爬虫失败: {e}")
+
+    # 导入江苏省应急管理厅通知公告爬虫
+    try:
+        import jiangsu_yjglt_tzgg_crawler
+        manager.register_crawler("江苏省应急管理厅_通知公告", jiangsu_yjglt_tzgg_crawler.run, jiangsu_yjglt_tzgg_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入江苏省应急管理厅_通知公告爬虫失败: {e}")
         
     # 执行所有爬虫
     if manager.crawlers:
