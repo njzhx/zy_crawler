@@ -498,6 +498,55 @@ if __name__ == "__main__":
     except ImportError as e:
         print(f"⚠️  导入江苏省农业农村厅_通知公告爬虫失败: {e}")
     
+    # 导入江苏省教育厅政策文件爬虫
+    try:
+        import jiangsu_jyt_zcwj_crawler
+        manager.register_crawler("江苏省教育厅_政策文件", jiangsu_jyt_zcwj_crawler.run, jiangsu_jyt_zcwj_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入江苏省教育厅_政策文件爬虫失败: {e}")
+
+    # 导入江苏省科学技术厅政策文件爬虫
+    try:
+        import jiangsu_kxjst_zcwj_crawler
+        manager.register_crawler("江苏省科学技术厅_政策文件", jiangsu_kxjst_zcwj_crawler.run, jiangsu_kxjst_zcwj_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入江苏省科学技术厅_政策文件爬虫失败: {e}")
+
+    # 导入江苏省知产局通知公告爬虫
+    try:
+        import jiangsu_zhichanju_tzgg_crawler
+        manager.register_crawler("江苏省知识产权局_通知公告", jiangsu_zhichanju_tzgg_crawler.run, jiangsu_zhichanju_tzgg_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入江苏省知识产权局_通知公告爬虫失败: {e}")
+
+     # 导入江苏省国资委政策文件爬虫
+    try:
+        import jiangsu_gzw_crawler
+        manager.register_crawler("江苏省国资委_政策文件", jiangsu_gzw_crawler.run, jiangsu_gzw_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入江苏省国资委_政策文件爬虫失败: {e}")
+
+    # 导入江苏省市场监管局政策文件爬虫
+    try:
+        import jiangsu_scjgj_zcwj_crawler
+        manager.register_crawler("江苏省市场监管局_政策文件", jiangsu_scjgj_zcwj_crawler.run, jiangsu_scjgj_zcwj_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入江苏省市场监管局_政策文件爬虫失败: {e}")
+
+     # 导入江苏省交通运输厅政策文件爬虫
+    try:
+        import jiangsu_jtyst_zcwj_crawler
+        manager.register_crawler("江苏省交通运输厅_政策文件", jiangsu_jtyst_zcwj_crawler.run, jiangsu_jtyst_zcwj_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入江苏省交通运输厅_政策文件爬虫失败: {e}")
+
+    # 导入江苏省应急管理厅通知公告爬虫
+    try:
+        import jiangsu_yjglt_tzgg_crawler
+        manager.register_crawler("江苏省应急管理厅_通知公告", jiangsu_yjglt_tzgg_crawler.run, jiangsu_yjglt_tzgg_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入江苏省应急管理厅_通知公告爬虫失败: {e}")
+        
     # 执行所有爬虫
     if manager.crawlers:
         results = manager.run_all_crawlers()
