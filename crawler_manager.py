@@ -130,7 +130,8 @@ class CrawlerManager:
                 
                 # 尝试从当前爬虫的输出中提取过滤数量
                 import re
-                filter_match = re.search(r'过滤掉\s*(\d+)\s*条', crawler_output)
+                # 匹配多种过滤信息格式
+                filter_match = re.search(r'(?:过滤掉|过滤非昨日数据|过滤掉非目标日期数据)\s*[:：]?\s*(\d+)\s*条', crawler_output)
                 if filter_match:
                     filter_count = int(filter_match.group(1))
                 

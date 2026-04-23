@@ -1,0 +1,33 @@
+# Python 缓存
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# 编辑器/系统文件
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# 你的本地临时文件
+.trae/
+daily_status_api.md
+json_structure.md
+
+# 日志、数据
+*.log
+*.sqlite3
+*.db
+*.csv
+
+# 配置/密钥
+.env
+.venv
+config.ini
