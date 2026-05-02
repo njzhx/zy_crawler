@@ -10,7 +10,7 @@ on:
 jobs:
   crawl:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       # 强制使用 Node.js 24 运行 GitHub Actions
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -21,29 +21,26 @@ jobs:
 
       - name: Set timezone to Beijing (UTC+8)
         run: |
-          # 方法1：推荐使用timedatectl（Ubuntu 16.04+ 通用）
           sudo timedatectl set-timezone Asia/Shanghai
-          # 验证时区是否设置成功（可选，用于调试）
-          timedatectl
           date
       
       - name: 设置 Python
         uses: actions/setup-python@v6
         with:
           python-version: '3.10'
-      
-      - name: 安装 Google Chrome (避免 Snap 错误)
-  run: |
-    sudo apt-get update
-    sudo apt-get install -y wget
-    wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-    sudo apt-get install -y ./google-chrome-stable_current_amd64.deb
 
-      
+      - name: 安装 Google Chrome (绕过 Snap 限制)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget fonts-liberation libnss3 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libasound2
+          wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt-get install -y ./google-chrome-stable_current_amd64.deb
+          google-chrome --version
+
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       
       - name: 执行爬虫
         run: python crawler_manager.py
