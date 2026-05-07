@@ -22,9 +22,13 @@ def scrape_data():
 
         response = requests.get(API_URL, headers=headers, timeout=30)
         response.raise_for_status()
-        soup = BeautifulSoup(response.content, 'xml')
-
-        records = soup.find_all('record')
+        
+        try:
+            soup = BeautifulSoup(response.content, 'xml')
+            records = soup.find_all('record')
+        except Exception:
+            soup = BeautifulSoup(response.content, 'html.parser')
+            records = soup.find_all('record')
         policy_links = {}
 
         for record in records:

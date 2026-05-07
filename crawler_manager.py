@@ -592,7 +592,7 @@ if __name__ == "__main__":
 
     # 导入江苏省生态环境厅通知爬虫
     try:
-        import jiangsu_sthjt_tzgg_crawler
+        from Jiangsu import jiangsu_sthjt_tzgg_crawler
         manager.register_crawler("江苏省生态环境厅_通知", jiangsu_sthjt_tzgg_crawler.run, jiangsu_sthjt_tzgg_crawler)
     except ImportError as e:
         print(f"⚠️  导入江苏省生态环境厅通知爬虫失败: {e}")
