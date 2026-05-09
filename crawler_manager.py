@@ -356,12 +356,40 @@ if __name__ == "__main__":
     except ImportError as e:
         print(f"⚠️  导入司法部政策文件爬虫失败: {e}")
     
-    # 导入财政部通知爬虫
+    # 导入财政部政策文件爬虫
     try:
         from Ministries import mof_crawler
-        manager.register_crawler("财政部通知", mof_crawler.run, mof_crawler)
+        manager.register_crawler("财政部政策文件", mof_crawler.run, mof_crawler)
     except ImportError as e:
-        print(f"⚠️  导入财政部通知爬虫失败: {e}")
+        print(f"⚠️  导入财政部政策文件爬虫失败: {e}")
+    
+    # 导入财政部通知公告爬虫
+    try:
+        from Ministries import mof_buling_crawler
+        manager.register_crawler("财政部通知公告", mof_buling_crawler.run, mof_buling_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入财政部通知公告爬虫失败: {e}")
+    
+    # 导入人社部政策文件爬虫
+    try:
+        from Ministries import mohrss_crawler
+        manager.register_crawler("人社部政策文件", mohrss_crawler.run, mohrss_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入人社部政策文件爬虫失败: {e}")
+    
+    # 导入自然资源部政策文件爬虫
+    try:
+        from Ministries import mnr_crawler
+        manager.register_crawler("自然资源部政策文件", mnr_crawler.run, mnr_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入自然资源部政策文件爬虫失败: {e}")
+    
+    # 导入生态环境部爬虫
+    try:
+        from Ministries import mee_crawler
+        manager.register_crawler("生态环境部", mee_crawler.run, mee_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入生态环境部爬虫失败: {e}")
     
     # 导入国家发改委爬虫
     try:

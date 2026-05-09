@@ -9,7 +9,7 @@ headers = {
     'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
 }
 
-TARGET_URL = "https://www.mof.gov.cn/zhengwuxinxi/zhengcefabu/"
+TARGET_URL = "https://www.mof.gov.cn/gkml/bulinggonggao/tongzhitonggao/"
 
 
 def scrape_data():
@@ -31,27 +31,21 @@ def scrape_data():
 
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        mainbox = soup.find('div', class_='mainboxerji')
-        if not mainbox:
-            print("[ERROR] 未找到文章列表容器 (div.mainboxerji)")
+        ul_list = soup.find_all('ul', class_='xwbd_lianbolistfrcon')
+        if not ul_list:
+            print("[ERROR] 未找到文章列表 (ul.xwbd_lianbolistfrcon)")
             return policies, all_items
 
-        xwfb_list = mainbox.find('div', class_='xwfb_listerji')
-        if not xwfb_list:
-            print("[ERROR] 未找到列表容器 (div.xwfb_listerji)")
-            return policies, all_items
-
-        uls = xwfb_list.find_all('ul', class_='xwfb_listbox')
-        print(f"[INFO] 找到 {len(uls)} 个列表容器")
+        print(f"[INFO] 找到 {len(ul_list)} 个列表容器")
 
         filtered_count = 0
 
-        for ul in uls:
+        for ul in ul_list:
             lis = ul.find_all('li')
             for li in lis:
                 try:
                     a = li.find('a')
-                    span = li.find('span')
+                    spans = li.find_all('span')
 
                     if not a:
                         continue
@@ -68,9 +62,15 @@ def scrape_data():
                         else:
                             href = f"https://www.mof.gov.cn/{href}"
 
-                    date_str = span.get_text(strip=True) if span else ''
+                    date_str = ''
+                    for span in spans:
+                        text = span.get_text(strip=True)
+                        if re.match(r'\d{4}-\d{2}-\d{2}', text):
+                            date_str = text
+                            break
+
                     pub_at = None
-                    if date_str and re.match(r'\d{4}-\d{2}-\d{2}', date_str):
+                    if date_str:
                         try:
                             pub_at = datetime.strptime(date_str, '%Y-%m-%d').date()
                         except ValueError:
@@ -89,7 +89,7 @@ def scrape_data():
                             detail_resp.encoding = 'utf-8'
                             detail_soup = BeautifulSoup(detail_resp.text, 'html.parser')
 
-                            content_div = detail_soup.find('div', class_='my_conboxzw')
+                            content_div = detail_soup.find('div', class_='mainboxerji')
                             if content_div:
                                 content = content_div.get_text(separator='\n', strip=True)
                             else:
@@ -106,7 +106,7 @@ def scrape_data():
                         'content': content,
                         'selected': False,
                         'category': '',
-                        'source': '财政部政策文件'
+                        'source': '财政部通知公告'
                     }
 
                     policies.append(policy_data)
@@ -115,7 +115,7 @@ def scrape_data():
                     print(f"[WARN] 单条数据处理失败 - {e}")
                     continue
 
-        print(f"\n[OK] 财政部政策文件爬虫：成功抓取 {len(policies)} 条前一天数据")
+        print(f"\n[OK] 财政部通知公告爬虫：成功抓取 {len(policies)} 条前一天数据")
         print(f"[SKIP] 过滤掉 {filtered_count} 条非目标日期的数据")
 
         if all_items:
@@ -127,7 +127,7 @@ def scrape_data():
                 print(f"[OK] {title}... {date_str}")
 
     except Exception as e:
-        print(f"[ERROR] 财政部政策文件爬虫：抓取失败 - {e}")
+        print(f"[ERROR] 财政部通知公告爬虫：抓取失败 - {e}")
         print("----------------------------------------")
 
     return policies, all_items
@@ -136,7 +136,7 @@ def scrape_data():
 def save_to_supabase(data_list):
     try:
         from db_utils import save_to_policy
-        return save_to_policy(data_list, "财政部政策文件")
+        return save_to_policy(data_list, "财政部通知公告")
     except Exception as e:
         print(f"Error saving to database: {e}")
         return data_list, None
@@ -149,7 +149,7 @@ def run():
             result, api_push_result = save_to_supabase(data)
             print(f"\n[OK] 写入数据库: {len(result)} 条")
             print("----------------------------------------")
-            print("[OK] 爬虫 财政部政策文件 执行成功")
+            print("[OK] 爬虫 财政部通知公告 执行成功")
             return result, api_push_result
         else:
             print(f"\n[OK] 写入数据库: 0 条")
@@ -157,7 +157,7 @@ def run():
             print("[WARN] 未找到目标日期的文章")
             return [], None
     except Exception as e:
-        print(f"[ERROR] 爬虫 财政部政策文件 运行失败 - {e}")
+        print(f"[ERROR] 爬虫 财政部通知公告 运行失败 - {e}")
         print("----------------------------------------")
         return [], None
 
