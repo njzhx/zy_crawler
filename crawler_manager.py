@@ -750,6 +750,132 @@ if __name__ == "__main__":
         manager.register_crawler("江苏省水利厅_规范性文件", jiangsu_jswater_zcwj_crawler.run, jiangsu_jswater_zcwj_crawler)
     except ImportError as e:
         print(f"⚠️  导入江苏省水利厅规范性文件爬虫失败: {e}")
+
+    # 导入交通运输部政府信息公开爬虫
+    try:
+        from Ministries import mot_fdzdgk_crawler
+        manager.register_crawler("交通运输部_政府信息公开", mot_fdzdgk_crawler.run, mot_fdzdgk_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入交通运输部政府信息公开爬虫失败: {e}")
+
+    # 导入水利部规范性文件爬虫
+    try:
+        from Ministries import mwr_gfxwj_crawler
+        manager.register_crawler("水利部_规范性文件", mwr_gfxwj_crawler.run, mwr_gfxwj_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入水利部规范性文件爬虫失败: {e}")
+
+    # 导入农业农村部政府信息公开爬虫
+    try:
+        from Ministries import moa_govpublic_crawler
+        manager.register_crawler("农业农村部_政府信息公开", moa_govpublic_crawler.run, moa_govpublic_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入农业农村部政府信息公开爬虫失败: {e}")
+
+    # 导入文化和旅游部规范性文件爬虫
+    try:
+        from Ministries import mct_gfxwj_crawler
+        manager.register_crawler("文化和旅游部_规范性文件", mct_gfxwj_crawler.run, mct_gfxwj_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入文化和旅游部规范性文件爬虫失败: {e}")
+
+    # 导入文化和旅游部政府信息公开爬虫
+    try:
+        from Ministries import mct_zwgk_crawler
+        manager.register_crawler("文化和旅游部_政府信息公开", mct_zwgk_crawler.run, mct_zwgk_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入文化和旅游部政府信息公开爬虫失败: {e}")
+
+    # 导入国家卫生健康委员会规范性文件爬虫
+    try:
+        from Ministries import nhc_gfxwj_crawler
+        manager.register_crawler("国家卫生健康委员会_规范性文件", nhc_gfxwj_crawler.run, nhc_gfxwj_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入国家卫生健康委员会规范性文件爬虫失败: {e}")
+
+    # 导入退役军人事务部规范性文件爬虫
+    try:
+        from Ministries import mva_gfxwj_crawler
+        manager.register_crawler("退役军人事务部_规范性文件", mva_gfxwj_crawler.run, mva_gfxwj_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入退役军人事务部规范性文件爬虫失败: {e}")
+
+    # 导入应急管理部通知公告爬虫
+    try:
+        from Ministries import mem_tzgg_crawler
+        manager.register_crawler("应急管理部_通知公告", mem_tzgg_crawler.run, mem_tzgg_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入应急管理部通知公告爬虫失败: {e}")
+
+    # 导入国务院国资委政策法规爬虫
+    try:
+        from Ministries import sasac_zcfg_crawler
+        manager.register_crawler("国务院国资委_政策法规", sasac_zcfg_crawler.run, sasac_zcfg_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入国务院国资委政策法规爬虫失败: {e}")
+
+    # 导入市场监管总局政府信息公开爬虫
+    try:
+        from Ministries import samr_fdzdgk_crawler
+        manager.register_crawler("市场监管总局_政府信息公开", samr_fdzdgk_crawler.run, samr_fdzdgk_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入市场监管总局政府信息公开爬虫失败: {e}")
+
+    # 导入国家知识产权局爬虫
+    try:
+        from Ministries import cnipa_zcfg_crawler
+        manager.register_crawler("国家知识产权局", cnipa_zcfg_crawler.run, cnipa_zcfg_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入国家知识产权局爬虫失败: {e}")
+
+    # 导入国家医疗保障局爬虫
+    try:
+        from Ministries import nhsa_zcfg_crawler
+        manager.register_crawler("国家医疗保障局", nhsa_zcfg_crawler.run, nhsa_zcfg_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入国家医疗保障局爬虫失败: {e}")
+
+    # 导入国家医疗保障局col109爬虫
+    try:
+        from Ministries import nhsa_col109_crawler
+        manager.register_crawler("国家医疗保障局_通知公告", nhsa_col109_crawler.run, nhsa_col109_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入国家医疗保障局col109爬虫失败: {e}")
+
+    # 导入中国民用航空局爬虫
+    try:
+        from Ministries import caac_zcfg_crawler
+        manager.register_crawler("中国民用航空局", caac_zcfg_crawler.run, caac_zcfg_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入中国民用航空局爬虫失败: {e}")
+
+    # 导入国家林业和草原局爬虫
+    try:
+        from Ministries import forestry_zcfg_crawler
+        manager.register_crawler("国家林业和草原局", forestry_zcfg_crawler.run, forestry_zcfg_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入国家林业和草原局爬虫失败: {e}")
+
+    # 导入中国气象局爬虫
+    try:
+        from Ministries import cma_zcfg_crawler
+        manager.register_crawler("中国气象局", cma_zcfg_crawler.run, cma_zcfg_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入中国气象局爬虫失败: {e}")
+
+    # 导入国家互联网信息办公室爬虫
+    try:
+        from Ministries import cac_zcfg_crawler
+        manager.register_crawler("国家互联网信息办公室（规章）", cac_zcfg_crawler.run, cac_zcfg_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入国家互联网信息办公室爬虫失败: {e}")
+
+    # 导入国家互联网信息办公室政策文件爬虫
+    try:
+        from Ministries import cac_zcwj_crawler
+        manager.register_crawler("国家互联网信息办公室（政策）", cac_zcwj_crawler.run, cac_zcwj_crawler)
+    except ImportError as e:
+        print(f"⚠️  导入国家互联网信息办公室政策文件爬虫失败: {e}")
         
     # 执行所有爬虫
     if manager.crawlers:

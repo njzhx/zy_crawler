@@ -1,0 +1,198 @@
+import requests
+from bs4 import BeautifulSoup
+from datetime import datetime, timedelta, timezone
+import re
+import json
+
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+}
+
+TARGET_URL = "https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/index.html"
+API_URL = "https://www.samr.gov.cn/api-gateway/jpaas-publish-server/front/page/build/unit?webId=29e9522dc89d4e088a953d8cede72f4c&pageId=20178939d3ff4e2cb6a2301da388b6c9&parseType=bulidstatic&pageType=column&tagId=%E5%BD%93%E5%89%8D%E5%86%85%E5%AE%B9&tplSetId=5c30fb89ae5e48b9aefe3cdf49853830&paramJson=%7B%22pageNo%22%3A1%2C%22pageSize%22%3A%2225%22%2C%22search%22%3A%22%7B%5C%22createdate%5C%22%3A%5C%22%5C%22%2C%5C%22depolytime%5C%22%3A%5C%22%5C%22%2C%5C%22xxgkId%5C%22%3A%5C%221205%5C%22%2C%5C%22xxgkType%5C%22%3A%5C%22xxgk_theme%5C%22%2C%5C%22nodeId%5C%22%3A%5C%2211100000MB0143028R%5C%22%2C%5C%22isFindChild%5C%22%3Atrue%7D%22%7D"
+
+
+def scrape_data():
+    policies = []
+    all_items = []
+
+    try:
+        tz_utc8 = timezone(timedelta(hours=8))
+        today = datetime.now(tz_utc8).date()
+        yesterday = today - timedelta(days=1)
+        print(f"[DATE] 运行日期（北京时间）：{today}")
+        print(f"[TARGET] 目标抓取日期：{yesterday}")
+
+        response = requests.get(API_URL, headers=headers, timeout=30)
+        response.raise_for_status()
+        
+        try:
+            data = response.json()
+        except json.JSONDecodeError:
+            print('[ERROR] 市场监管总局政府信息公开爬虫：API响应不是有效的JSON')
+            return policies, all_items
+
+        html_content = data.get('data', {}).get('html', '')
+        if not html_content:
+            print('[ERROR] 市场监管总局政府信息公开爬虫：API返回的HTML内容为空')
+            return policies, all_items
+
+        soup = BeautifulSoup(html_content, 'html.parser')
+
+        table = soup.find('table')
+        if not table:
+            print('[ERROR] 市场监管总局政府信息公开爬虫：未找到表格')
+            return policies, all_items
+
+        rows = table.find_all('tr')
+        if not rows:
+            print('[ERROR] 市场监管总局政府信息公开爬虫：表格为空')
+            return policies, all_items
+
+        filtered_count = 0
+
+        for idx, row in enumerate(rows):
+            try:
+                cells = row.find_all('td')
+                
+                if idx == 0:
+                    continue
+
+                if len(cells) < 3:
+                    continue
+
+                title_cell = cells[1]
+                date_cell = cells[2] if len(cells) > 2 else None
+
+                a_tag = title_cell.find('a')
+                if not a_tag:
+                    continue
+
+                title = a_tag.get_text(strip=True)
+                if not title:
+                    title = a_tag.get('title', '').strip()
+                
+                href = a_tag.get('href', '').strip()
+
+                if not title or not href:
+                    continue
+
+                article_url = href
+                if not article_url.startswith('http'):
+                    if article_url.startswith('/'):
+                        article_url = "https://www.samr.gov.cn" + href
+                    else:
+                        article_url = "https://www.samr.gov.cn/" + href
+
+                pub_at = None
+                if date_cell:
+                    date_text = date_cell.get_text(strip=True)
+                    date_match = re.search(r'(\d{4})[-/年](\d{1,2})[-/月](\d{1,2})日?', date_text)
+                    if date_match:
+                        try:
+                            pub_at = datetime.strptime(f"{date_match.group(1)}-{date_match.group(2)}-{date_match.group(3)}", '%Y-%m-%d').date()
+                        except ValueError:
+                            pass
+
+                if not pub_at:
+                    date_match = re.search(r'/(\d{4})(\d{2})(\d{2})/', href)
+                    if date_match:
+                        try:
+                            pub_at = datetime.strptime(f"{date_match.group(1)}-{date_match.group(2)}-{date_match.group(3)}", '%Y-%m-%d').date()
+                        except ValueError:
+                            pass
+
+                all_items.append({'title': title, 'pub_at': pub_at})
+
+                if pub_at != yesterday:
+                    filtered_count += 1
+                    continue
+
+                content = ""
+                try:
+                    detail_resp = requests.get(article_url, headers=headers, timeout=15)
+                    detail_resp.encoding = detail_resp.apparent_encoding
+                    detail_soup = BeautifulSoup(detail_resp.content, 'html.parser')
+
+                    content_elem = detail_soup.find('div', class_='Three_xilan_07')
+                    if not content_elem:
+                        content_elem = detail_soup.find('div', class_='TRS_Editor')
+                    if not content_elem:
+                        content_elem = detail_soup.find('div', class_='article')
+                    if not content_elem:
+                        content_elem = detail_soup.find('div', id='content')
+
+                    if content_elem:
+                        text = content_elem.get_text(separator='\n', strip=True)
+                        lines = [line.strip() for line in text.split('\n') if line.strip()]
+                        if lines:
+                            content = '\n'.join(lines)
+
+                    if not content or len(content) < 50:
+                        print(f'[WARN] 警告：文章内容可能未爬取成功 - {title[:50]}')
+                        print(f'   链接: {article_url}')
+                        print(f'   内容长度: {len(content)} 字符')
+
+                except Exception as e:
+                    print(f'[WARN] 抓取详情页失败: {article_url} - {e}')
+
+                policy_data = {
+                    'title': title,
+                    'url': article_url,
+                    'pub_at': pub_at,
+                    'content': content,
+                    'selected': False,
+                    'category': '',
+                    'source': '市场监管总局政府信息公开'
+                }
+                policies.append(policy_data)
+
+            except Exception:
+                continue
+
+        print(f'[OK] 市场监管总局政府信息公开爬虫：成功抓取 {len(policies)} 条前一天数据')
+        print(f'[SKIP] 过滤掉 {filtered_count} 条非目标日期的数据')
+
+        if all_items:
+            print('[INFO] 页面最新5条是：')
+            for i, item in enumerate(all_items[:5], 1):
+                date_str = item['pub_at'].strftime('%Y-%m-%d') if item['pub_at'] else '未知日期'
+                print(f'  {i}. {item["title"][:60]}... {date_str}')
+
+    except Exception as e:
+        print(f'[ERROR] 市场监管总局政府信息公开爬虫：抓取失败 - {e}')
+        print("----------------------------------------")
+
+    return policies, all_items
+
+
+def save_to_supabase(data_list):
+    try:
+        from db_utils import save_to_policy
+        return save_to_policy(data_list, "市场监管总局_政府信息公开")
+    except Exception:
+        return data_list
+
+
+def run():
+    try:
+        data, _ = scrape_data()
+        if data:
+            result, api_push_result = save_to_supabase(data)
+            print(f'[DB] 写入数据库: {len(result)} 条')
+            print("----------------------------------------")
+            print("[OK] 爬虫 市场监管总局政府信息公开 执行成功")
+            return result
+        else:
+            print("[DB] 写入数据库: 0 条")
+            print("----------------------------------------")
+            print("[WARN] 未找到目标日期的文章")
+            return data
+    except Exception as e:
+        print(f'[ERROR] 爬虫 市场监管总局政府信息公开 运行失败 - {e}')
+        print("----------------------------------------")
+        return []
+
+
+if __name__ == "__main__":
+    run()
