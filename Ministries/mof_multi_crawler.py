@@ -58,8 +58,16 @@ def scrape_single_config(config):
         today = datetime.now(tz_utc8).date()
         yesterday = today - timedelta(days=1)
 
-        response = requests.get(url, headers=headers, timeout=30)
-        response.raise_for_status()
+        for retry in range(3):
+            try:
+                response = requests.get(url, headers=headers, timeout=30)
+                response.raise_for_status()
+                break
+            except Exception:
+                if retry == 2:
+                    raise
+                import time
+                time.sleep(1)
         soup = BeautifulSoup(response.content, 'html.parser')
 
         ul_element = soup.find('ul', class_='liBox')
