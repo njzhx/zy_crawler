@@ -145,16 +145,23 @@ def parse_google_indexed_list(markdown):
 
         title = match.group("title").strip(" ·-—")
         pub_at = parse_date(match.group("date"))
-        if title and pub_at:
+        # 严格验证标题，过滤掉无效标题
+        if title and pub_at and len(title) > 3 and "time:" not in title.lower():
             items.append({"title": title, "url": TARGET_URL, "pub_at": pub_at})
 
     # The visible snippet is less structured, but useful when Google omits fragments.
     snippet_matches = re.findall(r"([^·\n]+?)(\d{4}-\d{2}-\d{2})", markdown)
     for title, date_text in snippet_matches:
         title = re.sub(r"^[\s_*·>-]+", "", title).strip()
-        if not title or "site:" in title or "Google" in title:
+        # 严格过滤无效标题
+        if not title or "site:" in title or "Google" in title or len(title) < 3:
             continue
-        items.append({"title": title, "url": TARGET_URL, "pub_at": parse_date(date_text)})
+        # 过滤常见的导航标题
+        if title.lower() in ["time:", "date:", "read more", "more results", "about this result"]:
+            continue
+        pub_at = parse_date(date_text)
+        if pub_at:
+            items.append({"title": title, "url": TARGET_URL, "pub_at": pub_at})
 
     seen = set()
     unique_items = []
@@ -289,7 +296,14 @@ def scrape_data():
                 article_url = item["url"]
                 pub_at = item["pub_at"]
 
+                # 严格验证数据，过滤无效数据
                 if pub_at != yesterday:
+                    filtered_count += 1
+                    continue
+
+                # 验证标题有效性
+                if not title or len(title) < 3 or title.lower() in ["time:", "date:"]:
+                    print(f"[WARN] 跳过无效标题: {title}")
                     filtered_count += 1
                     continue
 
@@ -297,10 +311,18 @@ def scrape_data():
                     resolved_url = resolve_indexed_article_url(title, session)
                     if resolved_url:
                         article_url = resolved_url
+                    else:
+                        # 如果没有找到有效的文章URL，跳过这条记录
+                        print(f"[WARN] 无法解析文章URL，跳过: {title[:40]}")
+                        filtered_count += 1
+                        continue
 
                 content = get_article_content(article_url, session, source)
                 if not content or len(content) < 50:
                     print(f"[WARN] 文章内容可能未完整抓取: {title[:50]} ({len(content)} 字)")
+                    # 内容太短时也跳过，避免保存无效数据
+                    filtered_count += 1
+                    continue
 
                 policies.append(
                     {
